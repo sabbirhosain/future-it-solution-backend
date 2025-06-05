@@ -30,7 +30,6 @@ export const formatDateTime = (input) => {
     return `${day}-${month}-${year} ${formattedTime}`;
 };
 
-
 // Format date ( 2025-04-13 to 13-04-2025 )
 export const formatDateOnly = (input) => {
     const date = new Date(input);

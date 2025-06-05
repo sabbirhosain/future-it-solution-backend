@@ -70,7 +70,7 @@ const AuthSchema = new mongoose.Schema({
     gender: {
         type: String,
         trim: true,
-        default: null
+        enum: ['male', 'female']
     },
 
     country: {
@@ -95,8 +95,19 @@ const AuthSchema = new mongoose.Schema({
         default: false
     },
 
-    attachment: {
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+
+    verify_token: {
         type: String,
+        trim: true,
+        default: null
+    },
+
+    attachment: {
+        type: Object,
         default: null
     },
 

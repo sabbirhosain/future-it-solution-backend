@@ -1,12 +1,16 @@
 import mongoose from "mongoose";
+import crypto from 'crypto';
 import bcrypt from "bcryptjs";
 import AuthModel from "../models/auth_model.js";
 import createJSONWebToken from "../utils/json_web_token.js";
 import { formatDateTime } from "../utils/helper.js";
+import { sendEmail } from "../utils/node_mailer.js";
+import { uploadCloudinary } from "../multer/cloudinary.js";
+import { v2 as cloudinary } from 'cloudinary';
 
 export const register = async (req, res) => {
     try {
-        const { first_name, last_name, user_name, phone, email, password, confirm_password } = req.body;
+        const { first_name, last_name, user_name, phone, email, password, confirm_password, verify_token } = req.body;
 
         const requiredFields = ['first_name', 'last_name', 'user_name', 'phone', 'email', 'password', 'confirm_password'];
         for (let field of requiredFields) {
@@ -55,6 +59,9 @@ export const register = async (req, res) => {
             });
         }
 
+        // Generate verification token
+        const verifyToken = crypto.randomBytes(32).toString('hex');
+
         // store the user value
         const result = await new AuthModel({
             join_date_formated: formatDateTime(Date.now()),
@@ -65,15 +72,55 @@ export const register = async (req, res) => {
             email: email.toLowerCase(),
             phone: phone,
             password: password,
+            verify_token: verifyToken
         }).save();
 
+
         if (result) {
+            await sendEmail({
+                to: result.email,
+                subject: 'Verify Your Email',
+                first_name: result.first_name,
+                verify_link: `http://localhost:8000/api/v1/auth/verify-email?token=${verifyToken}&email=${result.email}`
+            });
+
             return res.json({
                 success: true,
-                message: 'Register Success',
+                message: 'Registration successful. Please check your email to verify your account.',
                 payload: result
             });
         }
+
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}
+
+export const verifyEmail = async (req, res) => {
+    try {
+        const { token, email } = req.query;
+
+        if (!token || !email) {
+            return res.json({ message: 'Invalid verification link' });
+        }
+
+        const response = await AuthModel.findOne({ email: email, verify_token: token });
+
+        if (!response) {
+            return res.json({ message: 'Verification failed. Invalid token or email.' });
+        } else {
+            response.isVerified = true;
+            response.verify_token = null;
+            await response.save();
+        }
+
+        return res.json({
+            success: true,
+            message: 'Email verified successfully. You can now log in.'
+        });
 
     } catch (error) {
         return res.json({
@@ -112,6 +159,14 @@ export const login = async (req, res) => {
 
         if (!existing) {
             return res.json({ message: "Invalid credentials please register" })
+        }
+
+        // Check if email is verified
+        if (!existing.isVerified) {
+            return res.json({
+                success: false,
+                message: "Please verify your email before then logging in."
+            });
         }
 
         // Check password match
@@ -259,6 +314,70 @@ export const single = async (req, res) => {
 
 export const update = async (req, res) => {
     try {
+        const { id } = req.params
+        const { first_name, last_name, user_name, gender, country, address } = req.body;
+
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
+
+        // check exist data
+        const findOne = await AuthModel.findById(id);
+        if (!findOne) {
+            return res.json({ message: "Item not found" });
+        }
+
+        const requiredFields = ['first_name', 'last_name', 'user_name'];
+        for (let field of requiredFields) {
+            const value = req.body[field];
+            if (!value || value.trim() === '') {
+                return res.status(400).json({ [field]: 'is required and cannot be empty' });
+            }
+        }
+
+        // Check for spaces or uppercase letters in the username
+        if (/\s/.test(user_name) || /[A-Z]/.test(user_name)) {
+            return res.json({ user_name: 'Username cannot contain spaces or uppercase letters' });
+        }
+
+        // existing date chack
+        const existData = await AuthModel.findOne({ user_name: user_name.toLowerCase() });
+        if (existData && existData._id.toString() !== id) {
+            return res.status(400).json({ user_name: 'Username already exists' });
+        }
+
+        // attachment upload
+        let attachment = findOne.attachment;
+        if (req.file && req.file.path) {
+            const cloudinaryResult = await uploadCloudinary(req.file.path, 'User Image');
+            if (cloudinaryResult) {
+                if (findOne.attachment && findOne.attachment.public_id) {
+                    await cloudinary.uploader.destroy(findOne.attachment.public_id);
+                }
+                attachment = cloudinaryResult;
+            }
+        }
+
+        // update
+        const result = await AuthModel.findByIdAndUpdate(id, {
+            first_name: first_name,
+            last_name: last_name,
+            full_name: first_name + " " + last_name,
+            user_name: user_name.toLowerCase(),
+            gender: gender,
+            country: country,
+            address: address,
+            attachment: attachment
+        }, { new: true })
+
+        if (result) {
+            return res.json({
+                success: true,
+                message: 'Item Update Success',
+                payload: result
+            });
+        }
 
     } catch (error) {
         return res.json({
@@ -277,12 +396,23 @@ export const destroy = async (req, res) => {
             return res.json({ success: false, message: "Invalid ID format" });
         }
 
+        // check exist data
+        const findOne = await AuthModel.findById(id);
+        if (!findOne) {
+            return res.json({ message: "Item not found" });
+        }
+
         const result = await AuthModel.findByIdAndDelete(id);
 
         // Check not found
         if (!result) {
             return res.json({ success: false, message: "Data not found" });
+
         } else {
+            if (findOne.attachment && findOne.attachment.public_id) {
+                await cloudinary.uploader.destroy(findOne.attachment.public_id);
+            }
+
             return res.json({
                 success: true,
                 message: 'Item Destroy Success',
