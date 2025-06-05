@@ -215,7 +215,7 @@ export const login = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { join_date_from = "", join_date_to = "", suspended = "" } = req.query;
+        const { join_date_from = "", join_date_to = "", suspended = "", verified = "" } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -234,6 +234,11 @@ export const show = async (req, res) => {
         // Add suspended filter
         if (suspended !== "") {
             dataFilter.isSuspended = suspended === "true"; // Convert to boolean
+        }
+
+        // Add suspended filter
+        if (verified !== "") {
+            dataFilter.isVerified = verified === "true"; // Convert to boolean
         }
 
         // Add date filter
