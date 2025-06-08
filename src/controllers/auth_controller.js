@@ -10,9 +10,9 @@ import { v2 as cloudinary } from 'cloudinary';
 
 export const register = async (req, res) => {
     try {
-        const { first_name, last_name, user_name, phone, email, password, confirm_password, verify_token } = req.body;
+        const { first_name, last_name, country, phone, email, password, confirm_password, verify_token } = req.body;
 
-        const requiredFields = ['first_name', 'last_name', 'user_name', 'phone', 'email', 'password', 'confirm_password'];
+        const requiredFields = ['first_name', 'last_name', 'country', 'phone', 'email', 'password', 'confirm_password'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required' });
@@ -29,24 +29,18 @@ export const register = async (req, res) => {
             return res.json({ message: "Password and Confirm Password doesn't match" });
         }
 
-        // Check for spaces or uppercase letters in the username
-        if (/\s/.test(user_name) || /[A-Z]/.test(user_name)) {
-            return res.json({ user_name: 'Username cannot contain spaces or uppercase letters' });
-        }
-
         // Email domain validation
         const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'aol.com', 'mail.com', 'protonmail.com', 'zoho.com', 'gmx.com', 'rediffmail.com', 'naver.com', 'qq.com'];
         const emailDomain = email.split('@')[1]?.toLowerCase();
         if (!allowedDomains.includes(emailDomain)) {
             return res.status(400).json({
-                email: 'Only personal email addresses are allowed'
+                email: 'Only personal email are allowed (gmail, hotmail, yahoo) etc.'
             });
         }
 
         // existing username, email, phone chack
         const existing = await AuthModel.exists({
             $or: [
-                { user_name: user_name.toLowerCase() },
                 { email: email.toLowerCase() },
                 { phone: phone }
             ]
@@ -68,7 +62,7 @@ export const register = async (req, res) => {
             first_name: first_name,
             last_name: last_name,
             full_name: first_name + " " + last_name,
-            user_name: user_name.toLowerCase(),
+            country: country,
             email: email.toLowerCase(),
             phone: phone,
             password: password,
@@ -86,7 +80,7 @@ export const register = async (req, res) => {
 
             return res.json({
                 success: true,
-                message: 'Registration successful. Please check your email to verify your account.',
+                message: 'Please check your email to verify your account.',
                 payload: result
             });
         }
@@ -291,12 +285,13 @@ export const show = async (req, res) => {
 export const single = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await AuthModel.findById(id);
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.json({ success: false, message: "Invalid ID format" });
         }
+
+        const result = await AuthModel.findById(id);
 
         // Check not found
         if (!result) {
