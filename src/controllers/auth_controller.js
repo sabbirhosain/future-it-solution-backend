@@ -7,6 +7,9 @@ import { formatDateTime } from "../utils/helper.js";
 import { sendEmail } from "../utils/node_mailer.js";
 import { uploadCloudinary } from "../multer/cloudinary.js";
 import { v2 as cloudinary } from 'cloudinary';
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 export const register = async (req, res) => {
     try {
@@ -75,7 +78,7 @@ export const register = async (req, res) => {
                 to: result.email,
                 subject: 'Verify Your Email',
                 first_name: result.first_name,
-                verify_link: `http://localhost:8000/api/v1/auth/verify-email?token=${verifyToken}&email=${result.email}`
+                verify_link: `${process.env.BASE_URL}/api/v1/auth/verify-email?token=${verifyToken}&email=${result.email}`
             });
 
             return res.json({
