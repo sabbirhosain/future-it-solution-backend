@@ -33,23 +33,21 @@ const AuthSchema = new mongoose.Schema({
     user_name: {
         type: String,
         trim: true,
-        unique: true,
-        lowercase: true
+        lowercase: true,
+        default: null
     },
 
     phone: {
         type: String,
         required: true,
         trim: true,
-        unique: true
     },
 
     email: {
         type: String,
         trim: true,
-        lowercase: true,
-        unique: true,
         required: true,
+        lowercase: true,
         validate: {
             validator: function (v) {
                 return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v);
@@ -62,7 +60,6 @@ const AuthSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        minlength: [6, 'Password must be at least 6 characters long'],
         set: (value) => bcrypt.hashSync(value, bcrypt.genSaltSync(10))
     },
 
