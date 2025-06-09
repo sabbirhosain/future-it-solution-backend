@@ -71,7 +71,6 @@ export const register = async (req, res) => {
             password: password,
             verify_token: verifyToken
         }).save();
-        console.log('result', result);
 
 
         if (result) {

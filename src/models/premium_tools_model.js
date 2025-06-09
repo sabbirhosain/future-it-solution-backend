@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const PremiumToolsSchema = new mongoose.Schema({
 
-    name: {
+    tools_name: {
         type: String,
         required: true,
         trim: true
@@ -10,26 +10,24 @@ const PremiumToolsSchema = new mongoose.Schema({
 
     short_description: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: null
     },
 
     long_description: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: null
     },
 
     additional_feature: {
         type: Array,
-        required: true,
         trim: true,
         default: null
     },
 
     package_details: {
         type: Array,
-        required: true,
         trim: true,
         default: null
     },
@@ -37,51 +35,52 @@ const PremiumToolsSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true,
-        trim: true
+        trim: true,
+        default: 0
     },
 
     price_type: {
         type: String,
-        required: true,
         trim: true,
-        enum: ['bdt', 'usd']
+        enum: ['BDT', 'USD'],
+        default: 'BDT'
     },
 
     discount: {
         type: Number,
-        required: true,
-        trim: true
+        trim: true,
+        default: 0
     },
 
     validity: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: 0
     },
 
     validity_type: {
         type: String,
-        required: true,
         trim: true,
-        enum: ['day', 'month', 'year']
+        enum: ['Day', 'Month', 'Year'],
+        default: 'Day'
     },
 
     rating: {
         type: Number,
-        required: true,
-        trim: true
+        trim: true,
+        default: 0
     },
 
     total_sold: {
         type: Number,
-        required: true,
-        trim: true
+        trim: true,
+        default: 0
     },
 
     important_note: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: null
     },
 
     available: {
