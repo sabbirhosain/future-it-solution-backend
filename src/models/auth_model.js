@@ -87,8 +87,9 @@ const AuthSchema = new mongoose.Schema({
     },
 
     isSuspended: {
-        type: Boolean,
-        default: false
+        type: String,
+        enum: ['active', 'panding', 'hold'],
+        default: 'panding'
     },
 
     isVerified: {

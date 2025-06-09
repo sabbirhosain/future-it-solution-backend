@@ -111,6 +111,7 @@ export const verifyEmail = async (req, res) => {
         } else {
             response.isVerified = true;
             response.verify_token = null;
+            response.isSuspended = 'active';
             await response.save();
         }
 
