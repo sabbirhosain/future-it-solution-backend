@@ -25,7 +25,7 @@ export const formatDateTime = (input) => {
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12; // Convert to 12-hour format
 
-    const formattedTime = `${String(hours).padStart(2, '0')}:${minutes}${ampm}`;
+    const formattedTime = `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
 
     return `${day}-${month}-${year} ${formattedTime}`;
 };
