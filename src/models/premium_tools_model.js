@@ -90,6 +90,12 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: true
     },
 
+    coupon_code: {
+        type: String,
+        trim: true,
+        default: null
+    },
+
     attachment: {
         type: Object,
         default: null

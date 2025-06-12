@@ -50,10 +50,7 @@ export const register = async (req, res) => {
         });
 
         if (existing) {
-            return res.json({
-                success: false,
-                message: "User is already registered please login"
-            });
+            return res.json({ message: "The user is already registered, please login." });
         }
 
         // Generate verification token
@@ -61,7 +58,7 @@ export const register = async (req, res) => {
 
         // store the user value
         const result = await new AuthModel({
-            join_date_formated: formatDateTime(Date.now()),
+            date_and_time: formatDateTime(Date.now()),
             first_name: first_name,
             last_name: last_name,
             full_name: first_name + " " + last_name,
@@ -111,7 +108,7 @@ export const verifyEmail = async (req, res) => {
         } else {
             response.isVerified = true;
             response.verify_token = null;
-            response.isSuspended = 'active';
+            response.status = 'active';
             await response.save();
         }
 
@@ -128,19 +125,54 @@ export const verifyEmail = async (req, res) => {
     }
 }
 
+export const VerifyManually = async (req, res) => {
+    try {
+        const { id } = req.params
+
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
+
+        // check exist data
+        const findOne = await AuthModel.findById(id);
+        if (!findOne) {
+            return res.json({ message: "Item not found" });
+        }
+
+        // update
+        const result = await AuthModel.findByIdAndUpdate(id, {
+            isVerified: true,
+            verify_token: null,
+            status: 'active'
+        }, { new: true })
+
+        if (result) {
+            return res.json({
+                success: true,
+                message: 'Item Verified Success',
+            });
+        }
+
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}
+
 export const login = async (req, res) => {
     try {
 
-        // Check if the user is already logged in
-        const accessTokenExists = req.cookies.accessToken;
-        const refreshTokenExists = req.cookies.refreshToken;
-
-        if (accessTokenExists || refreshTokenExists) {
-            return res.json({
+        // Check for existing tokens
+        if (req.cookies.accessToken || req.cookies.refreshToken) {
+            return res.status(400).json({
                 success: false,
-                message: 'User is already logged in.',
+                message: 'User is already logged in.'
             });
         }
+
 
         const { user, password } = req.body
         if (!user) { return res.json({ user: "Phone or email feild is required" }) }
@@ -174,10 +206,9 @@ export const login = async (req, res) => {
         }
 
         // create access token with set the cookie
-        const accessToken = createJSONWebToken({ existing }, process.env.JWT_ACCESS_SECRET_KEY, "1h")
+        const accessToken = createJSONWebToken({ existing }, process.env.JWT_ACCESS_SECRET_KEY, "1d")
         res.cookie('accessToken', accessToken, {
-            // maxAge: 60 * 60 * 1000, //1 hours
-            maxAge: 5 * 60 * 1000, //5 min
+            maxAge: 1 * 24 * 60 * 60 * 1000, //1 day
             secure: true,
             httpOnly: true,
             sameSite: 'none'
@@ -186,8 +217,7 @@ export const login = async (req, res) => {
         // create refresh token with set the cookie
         const refreshToken = createJSONWebToken({ existing }, process.env.JWT_REFRESH_SECRET_KEY, '7d')
         res.cookie('refreshToken', refreshToken, {
-            // maxAge: 7 * 24 * 60 * 60 * 1000, //7 day
-            maxAge: 60 * 60 * 1000, //1 hours
+            maxAge: 7 * 24 * 60 * 60 * 1000, //7 day
             secure: true,
             httpOnly: true,
             sameSite: 'none'
@@ -213,7 +243,7 @@ export const login = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { join_date_from = "", join_date_to = "", suspended = "", verified = "" } = req.query;
+        const { join_date_from = "", join_date_to = "", status = "", verified = "" } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -226,12 +256,15 @@ export const show = async (req, res) => {
                 { user_name: { $regex: searchQuery } },
                 { email: { $regex: searchQuery } },
                 { phone: { $regex: searchQuery } },
+                { country: { $regex: searchQuery } },
+                { gender: { $regex: searchQuery } },
             ]
         }
 
         // Add suspended filter
-        if (suspended !== "") {
-            dataFilter.isSuspended = suspended === "true"; // Convert to boolean
+        const allowedStatuses = ['active', 'pending', 'hold'];
+        if (status !== "" && allowedStatuses.includes(status)) {
+            dataFilter.status = status;
         }
 
         // Add suspended filter
@@ -247,6 +280,21 @@ export const show = async (req, res) => {
             }
             if (join_date_to) {
                 dataFilter.join_date.$lte = new Date(join_date_to); // To date
+            }
+        }
+
+
+        if (join_date_from || join_date_to) {
+            dataFilter.join_date = {};
+            if (join_date_from) {
+                const fromDate = new Date(join_date_from);
+                fromDate.setHours(0, 0, 0, 0);
+                dataFilter.join_date.$gte = fromDate;
+            }
+            if (join_date_to) {
+                const toDate = new Date(join_date_to);
+                toDate.setHours(23, 59, 59, 999);
+                dataFilter.join_date.$lte = toDate;
             }
         }
 
@@ -332,7 +380,7 @@ export const update = async (req, res) => {
             return res.json({ message: "Item not found" });
         }
 
-        const requiredFields = ['first_name', 'last_name', 'user_name'];
+        const requiredFields = ['first_name', 'last_name', 'country'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -348,7 +396,7 @@ export const update = async (req, res) => {
         // existing date chack
         const existData = await AuthModel.findOne({ user_name: user_name.toLowerCase() });
         if (existData && existData._id.toString() !== id) {
-            return res.status(400).json({ user_name: 'Username already exists' });
+            return res.status(400).json({ user_name: 'username already exists. try another' });
         }
 
         // attachment upload
@@ -419,7 +467,7 @@ export const destroy = async (req, res) => {
 
             return res.json({
                 success: true,
-                message: 'Item Destroy Success',
+                message: 'User Destroy Success',
             });
         }
 
@@ -475,16 +523,49 @@ export const changeRole = async (req, res) => {
     }
 }
 
-export const isSuspended = async (req, res) => {
+export const changeStatus = async (req, res) => {
     try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        // Validate the mongoose ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
+
+        // Check if user exists
+        const existing = await AuthModel.findById(id);
+        if (!existing) {
+            return res.json({ success: false, message: "User not found" });
+        }
+
+        // Check if status is provided
+        if (!status) {
+            return res.json({ success: false, message: "Status is required" });
+        }
+
+        // Validate status
+        const allowedStatuses = ['active', 'hold'];
+        if (!allowedStatuses.includes(status)) {
+            return res.json({ success: false, message: "Invalid status value" });
+        }
+
+        // Update status
+        const result = await AuthModel.findByIdAndUpdate(id, { status: status }, { new: true });
+
+        return res.json({
+            success: true,
+            message: "Status updated successfully",
+            payload: result
+        });
 
     } catch (error) {
         return res.json({
             success: false,
-            error: error.message || 'Internal Server Error'
+            message: error.message || "Internal Server Error"
         });
     }
-}
+};
 
 export const tokenGenerate = async (req, res) => {
     try {

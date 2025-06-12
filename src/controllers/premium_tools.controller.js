@@ -3,7 +3,7 @@ import PremiumToolsModel from "../models/premium_tools_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available, coupon_code } = req.body;
 
         const requiredFields = ['tools_name', 'short_description', 'long_description', 'additional_feature', 'package_details', 'price', 'price_type', 'validity', 'validity_type'];
         for (let field of requiredFields) {
@@ -43,7 +43,8 @@ export const create = async (req, res) => {
             rating: rating,
             total_sold: total_sold,
             important_note: important_note,
-            available: available
+            available: available,
+            coupon_code: coupon_code
         }).save();
 
 
@@ -134,7 +135,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available, coupon_code } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -189,7 +190,8 @@ export const update = async (req, res) => {
             rating: rating,
             total_sold: total_sold,
             important_note: important_note,
-            available: available
+            available: available,
+            coupon_code: coupon_code
         }, { new: true })
 
         if (result) {

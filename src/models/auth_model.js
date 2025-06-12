@@ -2,13 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs"
 
 const AuthSchema = new mongoose.Schema({
-    join_date: {
-        type: Date,
-        required: true,
-        default: Date.now()
-    },
-
-    join_date_formated: {
+    date_and_time: {
         type: String,
         trim: true
     },
@@ -86,7 +80,7 @@ const AuthSchema = new mongoose.Schema({
         default: false
     },
 
-    isSuspended: {
+    status: {
         type: String,
         enum: ['active', 'pending', 'hold'],
         default: 'pending'
