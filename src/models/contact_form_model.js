@@ -2,12 +2,6 @@ import mongoose from "mongoose";
 
 const ContactFormSchema = new mongoose.Schema({
     date_and_time: {
-        type: Date,
-        required: true,
-        default: Date.now()
-    },
-
-    date_and_time_formated: {
         type: String,
         trim: true
     },
@@ -21,13 +15,15 @@ const ContactFormSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        match: [/.+\@.+\..+/, 'Please fill a valid email address']
     },
 
     phone: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        match: [/^\+?[0-9]{7,15}$/, 'Please enter a valid phone number']
     },
 
     address: {
@@ -48,10 +44,9 @@ const ContactFormSchema = new mongoose.Schema({
     },
 
     message_status: {
-        type: Boolean,
-        required: true,
-        trim: true,
-        default: false
+        type: String,
+        enum: ['pending', 'completed', 'cancelled'],
+        default: 'pending'
     },
 
 }, { timestamps: true })

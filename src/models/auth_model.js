@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs"
 
 const AuthSchema = new mongoose.Schema({
     date_and_time: {
+        type: Date,
+        default: Date.now()
+    },
+
+    date_and_time_formated: {
         type: String,
         trim: true
     },

@@ -21,48 +21,50 @@ const PremiumToolsSchema = new mongoose.Schema({
     },
 
     additional_feature: {
-        type: Array,
-        trim: true,
-        default: null
+        type: [String],
+        default: [],
     },
 
     package_details: {
-        type: Array,
-        trim: true,
-        default: null
+        type: [String],
+        default: [],
     },
 
-    price: {
-        type: Number,
-        required: true,
-        trim: true,
-        default: 0
-    },
-
-    price_type: {
-        type: String,
-        trim: true,
-        enum: ['BDT', 'USD'],
-        default: 'BDT'
-    },
-
-    discount: {
-        type: Number,
-        trim: true,
-        default: 0
-    },
-
-    validity: {
-        type: String,
-        trim: true,
-        default: 0
-    },
-
-    validity_type: {
-        type: String,
-        trim: true,
-        enum: ['Day', 'Month', 'Year'],
-        default: 'Day'
+    pricing_tiers: {
+        type: [{
+            quantity: {
+                type: Number,
+                required: true,
+                min: 1
+            },
+            price: {
+                type: Number,
+                required: true,
+                min: 0
+            },
+            currency: {
+                type: String,
+                required: true,
+                enum: ['BDT', 'USD'],
+                default: 'BDT'
+            },
+            expired: {
+                type: Number,
+                trim: true,
+                default: 0
+            },
+            expired_type: {
+                type: String,
+                trim: true,
+                enum: ['Day', 'Month', 'Year'],
+                default: 'Day'
+            },
+            discount: {
+                type: Number,
+                default: 0,
+                min: 0
+            },
+        }]
     },
 
     rating: {
@@ -85,15 +87,15 @@ const PremiumToolsSchema = new mongoose.Schema({
 
     available: {
         type: Boolean,
-        required: true,
-        trim: true,
         default: true
     },
 
     coupon_code: {
         type: String,
         trim: true,
-        default: null
+        default: null,
+        uppercase: true,
+        match: [/^[A-Z0-9-]+$/, "Coupon code can only contain letters, numbers, and hyphens"]
     },
 
     attachment: {

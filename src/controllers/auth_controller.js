@@ -14,7 +14,6 @@ dotenv.config();
 export const register = async (req, res) => {
     try {
         const { first_name, last_name, country, phone, email, password, confirm_password, verify_token } = req.body;
-
         const requiredFields = ['first_name', 'last_name', 'country', 'phone', 'email', 'password', 'confirm_password'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
@@ -35,9 +34,10 @@ export const register = async (req, res) => {
         // Email domain validation
         const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'aol.com', 'mail.com', 'protonmail.com', 'zoho.com', 'gmx.com', 'rediffmail.com', 'naver.com', 'qq.com'];
         const emailDomain = email.split('@')[1]?.toLowerCase();
-        if (!allowedDomains.includes(emailDomain)) {
+        if (!emailDomain || !allowedDomains.includes(emailDomain)) {
             return res.status(400).json({
-                email: 'Only personal email are allowed (gmail, hotmail, yahoo) etc.'
+                success: false,
+                message: 'Only personal email domains are allowed (gmail, yahoo, outlook, etc.)'
             });
         }
 
@@ -58,7 +58,7 @@ export const register = async (req, res) => {
 
         // store the user value
         const result = await new AuthModel({
-            date_and_time: formatDateTime(Date.now()),
+            date_and_time_formated: formatDateTime(Date.now()),
             first_name: first_name,
             last_name: last_name,
             full_name: first_name + " " + last_name,
@@ -243,7 +243,7 @@ export const login = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { join_date_from = "", join_date_to = "", status = "", verified = "" } = req.query;
+        const { from_date = "", to_date = "", status = "", verified = "" } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -273,28 +273,17 @@ export const show = async (req, res) => {
         }
 
         // Add date filter
-        if (join_date_from || join_date_to) {
-            dataFilter.join_date = {};
+        if (from_date || to_date) {
+            dataFilter.date_and_time = {};
             if (join_date_from) {
-                dataFilter.join_date.$gte = new Date(join_date_from); // From date
-            }
-            if (join_date_to) {
-                dataFilter.join_date.$lte = new Date(join_date_to); // To date
-            }
-        }
-
-
-        if (join_date_from || join_date_to) {
-            dataFilter.join_date = {};
-            if (join_date_from) {
-                const fromDate = new Date(join_date_from);
+                const fromDate = new Date(from_date);
                 fromDate.setHours(0, 0, 0, 0);
-                dataFilter.join_date.$gte = fromDate;
+                dataFilter.date_and_time.$gte = fromDate;
             }
-            if (join_date_to) {
-                const toDate = new Date(join_date_to);
+            if (to_date) {
+                const toDate = new Date(to_date);
                 toDate.setHours(23, 59, 59, 999);
-                dataFilter.join_date.$lte = toDate;
+                dataFilter.date_and_time.$lte = toDate;
             }
         }
 

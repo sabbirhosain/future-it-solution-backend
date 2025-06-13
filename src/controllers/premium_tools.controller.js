@@ -1,30 +1,120 @@
 import mongoose from "mongoose";
+import path from 'path';
 import PremiumToolsModel from "../models/premium_tools_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available, coupon_code } = req.body;
-
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'additional_feature', 'package_details', 'price', 'price_type', 'validity', 'validity_type'];
+        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, coupon_code } = req.body;
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
-                return res.status(400).json({ [field]: 'Field is required' });
+                return res.status(400).json({ [field]: 'Field is required (string)' });
             }
         }
 
-        // tools name length validation
-        if (tools_name.length < 5 || tools_name.length > 25) {
+        // Validate additional_feature are arrays
+        if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
-                tools_name: 'Tools name must be min 5 and max 25 characters.',
+                additional_feature: 'must be arrays'
             });
         }
 
-        // file upload
+        // Validate package_details are arrays
+        if (!Array.isArray(package_details)) {
+            return res.status(400).json({
+                package_details: 'must be arrays'
+            });
+        }
+
+        // Validate pricing_tiers structure
+        if (!Array.isArray(pricing_tiers) || pricing_tiers.length === 0) {
+            return res.status(400).json({
+                pricing_tiers: 'At least one pricing tier is required'
+            });
+        }
+
+        // Validate each pricing tier
+        const pricingErrors = [];
+        pricing_tiers.forEach((tier, index) => {
+            const tierErrors = [];
+
+            if (tier.quantity === undefined || tier.quantity === null || tier.quantity <= 0) {
+                tierErrors.push('Quantity is required and must be greater than 0');
+            }
+
+            if (tier.price === undefined || tier.price === null || tier.price <= 0) {
+                tierErrors.push('Price is required and must be greater than 0');
+            }
+
+            if (!tier.currency || !['BDT', 'USD'].includes(tier.currency)) {
+                tierErrors.push('Currency is required and must be either BDT or USD');
+            }
+
+            if (tier.expired !== undefined && tier.expired !== null && tier.expired <= 0) {
+                tierErrors.push('Expired must be greater than 0 if provided');
+            }
+
+            if (tier.expired_type && !['Day', 'Month', 'Year'].includes(tier.expired_type)) {
+                tierErrors.push('Expired type must be Day, Month, or Year if provided');
+            }
+
+            if (tier.discount !== undefined && tier.discount !== null && (tier.discount < 0 || tier.discount > 100)) {
+                tierErrors.push('Discount must be between 0 and 100');
+            }
+
+            if (tierErrors.length > 0) {
+                pricingErrors.push(`Tier ${index + 1}: ${tierErrors.join(', ')}`);
+            }
+        });
+
+        if (pricingErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Pricing validation failed',
+                details: pricingErrors
+            });
+        }
+
+        // Coupon code validation if provided
+        if (coupon_code && !/^[A-Z0-9-]+$/.test(coupon_code)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Coupon code can only contain uppercase letters, numbers, and hyphens'
+            });
+        }
+
+        // File upload handling
         let attachment = null;
         if (req.file && req.file.path) {
-            const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
-            if (cloudinaryResult) {
-                attachment = cloudinaryResult;
+            try {
+                const fileExt = path.extname(req.file.originalname).toLowerCase();
+                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
+                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
+                    });
+                }
+
+                if (req.file.size > 5 * 1024 * 1024) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'File too large (max 5MB)'
+                    });
+                }
+
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
+                if (cloudinaryResult) {
+                    attachment = cloudinaryResult;
+                }
+            } catch (fileError) {
+                console.error('File upload error:', fileError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error processing file upload'
+                });
             }
         }
 
@@ -35,16 +125,10 @@ export const create = async (req, res) => {
             long_description: long_description,
             additional_feature: additional_feature,
             package_details: package_details,
-            price: price,
-            price_type: price_type,
-            discount: discount,
-            validity: validity,
-            validity_type: validity_type,
-            rating: rating,
-            total_sold: total_sold,
+            pricing_tiers: pricing_tiers,
             important_note: important_note,
-            available: available,
-            coupon_code: coupon_code
+            coupon_code: coupon_code,
+            attachment: attachment
         }).save();
 
 
@@ -66,15 +150,30 @@ export const create = async (req, res) => {
 
 export const show = async (req, res) => {
     try {
+        const search = req.query.search || "";
+        const available = req.query.available || "";
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
+        const searchQuery = new RegExp('.*' + search + '.*', 'i');
 
-        const result = await PremiumToolsModel.find()
+        // Add search filter
+        const dataFilter = {
+            $or: [
+                { "tools_name": { $regex: searchQuery } },
+            ]
+        };
+
+        // Add suspended filter
+        if (available !== "") {
+            dataFilter.available = available === "true";
+        }
+
+        const result = await PremiumToolsModel.find(dataFilter)
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip((page - 1) * limit)
 
-        const count = await PremiumToolsModel.find().countDocuments();
+        const count = await PremiumToolsModel.find(dataFilter).countDocuments();
 
         // Check not found
         if (result.length === 0) {
@@ -84,12 +183,12 @@ export const show = async (req, res) => {
                 success: true,
                 message: 'Item Show Success',
                 pagination: {
-                    per_page: limit,
-                    current_page: page,
+                    per_page: Number(limit),
+                    current_page: Number(page),
                     total_data: count,
-                    total_page: Math.ceil(count / limit),
-                    previous: page - 1 > 0 ? page - 1 : null,
-                    next: page + 1 <= Math.ceil(count / limit) ? page + 1 : null
+                    total_page: Math.ceil(count / Number(limit)),
+                    previous: Number(page) - 1 > 0 ? Number(page) - 1 : null,
+                    next: Number(page) + 1 <= Math.ceil(count / Number(limit)) ? Number(page) + 1 : null
                 },
                 payload: result,
             });
@@ -135,7 +234,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, package_details, price, price_type, discount, validity, validity_type, rating, total_sold, important_note, available, coupon_code } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, coupon_code, available } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -148,7 +247,7 @@ export const update = async (req, res) => {
             return res.json({ message: "Item not found" });
         }
 
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'additional_feature', 'package_details', 'price', 'price_type', 'validity', 'validity_type'];
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -156,24 +255,116 @@ export const update = async (req, res) => {
             }
         }
 
-        // tools name length validation
-        if (tools_name.length < 5 || tools_name.length > 25) {
+        // Validate additional_feature are arrays
+        if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
-                tools_name: 'Tools name must be min 5 and max 25 characters.',
+                additional_feature: 'must be arrays'
             });
         }
 
-        // attachment upload
+        // Validate package_details are arrays
+        if (!Array.isArray(package_details)) {
+            return res.status(400).json({
+                package_details: 'must be arrays'
+            });
+        }
+
+        // Validate pricing_tiers structure
+        if (!Array.isArray(pricing_tiers) || pricing_tiers.length === 0) {
+            return res.status(400).json({
+                pricing_tiers: 'At least one pricing tier is required'
+            });
+        }
+
+        // Validate each pricing tier
+        const pricingErrors = [];
+        pricing_tiers.forEach((tier, index) => {
+            const tierErrors = [];
+
+            if (tier.quantity === undefined || tier.quantity === null || tier.quantity <= 0) {
+                tierErrors.push('Quantity is required and must be greater than 0');
+            }
+
+            if (tier.price === undefined || tier.price === null || tier.price <= 0) {
+                tierErrors.push('Price is required and must be greater than 0');
+            }
+
+            if (!tier.currency || !['BDT', 'USD'].includes(tier.currency)) {
+                tierErrors.push('Currency is required and must be either BDT or USD');
+            }
+
+            if (tier.expired !== undefined && tier.expired !== null && tier.expired <= 0) {
+                tierErrors.push('Expired must be greater than 0 if provided');
+            }
+
+            if (tier.expired_type && !['Day', 'Month', 'Year'].includes(tier.expired_type)) {
+                tierErrors.push('Expired type must be Day, Month, or Year if provided');
+            }
+
+            if (tier.discount !== undefined && tier.discount !== null && (tier.discount < 0 || tier.discount > 100)) {
+                tierErrors.push('Discount must be between 0 and 100');
+            }
+
+            if (tierErrors.length > 0) {
+                pricingErrors.push(`Tier ${index + 1}: ${tierErrors.join(', ')}`);
+            }
+        });
+
+        if (pricingErrors.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Pricing validation failed',
+                details: pricingErrors
+            });
+        }
+
+        // Coupon code validation
+        if (coupon_code && !/^[A-Z0-9-]+$/.test(coupon_code)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Coupon code can only contain uppercase letters, numbers, and hyphens'
+            });
+        }
+
+        // file upload
         let attachment = findOne.attachment;
         if (req.file && req.file.path) {
-            const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
-            if (cloudinaryResult) {
-                if (findOne.attachment && findOne.attachment.public_id) {
-                    await cloudinary.uploader.destroy(findOne.attachment.public_id);
+            try {
+                const fileExt = path.extname(req.file.originalname).toLowerCase();
+                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
+                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
+                    });
                 }
-                attachment = cloudinaryResult;
+
+                if (req.file.size > 5 * 1024 * 1024) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'File too large (max 5MB)'
+                    });
+                }
+
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
+                if (cloudinaryResult) {
+                    // Delete old image if it exists
+                    if (attachment && attachment.public_id) {
+                        await cloudinary.uploader.destroy(attachment.public_id);
+                    }
+                    attachment = cloudinaryResult;
+                }
+            } catch (fileError) {
+                console.error('File upload error:', fileError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error processing file upload'
+                });
             }
         }
+
 
         // update
         const result = await PremiumToolsModel.findByIdAndUpdate(id, {
@@ -182,16 +373,11 @@ export const update = async (req, res) => {
             long_description: long_description,
             additional_feature: additional_feature,
             package_details: package_details,
-            price: price,
-            price_type: price_type,
-            discount: discount,
-            validity: validity,
-            validity_type: validity_type,
-            rating: rating,
-            total_sold: total_sold,
+            pricing_tiers: pricing_tiers,
             important_note: important_note,
+            coupon_code: coupon_code,
             available: available,
-            coupon_code: coupon_code
+            attachment: attachment
         }, { new: true })
 
         if (result) {

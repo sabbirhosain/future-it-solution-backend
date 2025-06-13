@@ -32,6 +32,10 @@ router.delete("/premium/tools/:id", PremiumTools.destroy)
 
 // Private routes || appointment meeting
 router.post("/appointment/schedule", Appointment.create)
+router.get("/appointment/schedule", Appointment.show)
+router.get("/appointment/schedule/:id", Appointment.single)
+router.put("/appointment/schedule/:id", Appointment.update)
+router.delete("/appointment/schedule/:id", Appointment.update)
 
 
 

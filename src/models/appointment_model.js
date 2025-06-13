@@ -2,14 +2,25 @@ import mongoose from "mongoose";
 
 const AppointmentSchema = new mongoose.Schema({
     date_and_time: {
+        type: Date,
+        default: Date.now()
+    },
+
+    date_and_time_formated: {
         type: String,
         trim: true
     },
 
-    client_info: {
+    appointment_by: {
         type: Object,
         required: true,
         default: null
+    },
+
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     },
 
     meeting_date: {
@@ -29,17 +40,16 @@ const AppointmentSchema = new mongoose.Schema({
         trim: true,
     },
 
-    time_zone_gmt: {
+    meeting_date_and_time: {
         type: String,
         trim: true,
-        required: true,
-        match: /^GMT[+-]\d{1,2}(:\d{2})?$/  // Basic GMT format validation
+        default: null
     },
 
-    language: {
-        type: Array,
+    time_zone_gmt_and_utc: {
+        type: String,
         trim: true,
-        default: null
+        required: true
     },
 
     meeting_type: {

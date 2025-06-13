@@ -3,8 +3,7 @@ import { formatDateTime } from "../utils/helper";
 
 export const create = async (req, res) => {
     try {
-        const { date_and_time_formated, name, email, phone, address, subject, message, } = req.body;
-
+        const { name, email, phone, address, subject, message, } = req.body;
         const requiredFields = ['name', 'email', 'phone', 'address', 'subject', 'message'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
@@ -23,7 +22,7 @@ export const create = async (req, res) => {
 
         // store the user value
         const result = await new ContactFormModel({
-            date_and_time_formated: formatDateTime(Date.now()),
+            date_and_time: formatDateTime(Date.now()),
             name: name,
             email: email,
             phone: phone,
@@ -66,9 +65,10 @@ export const show = async (req, res) => {
             ]
         }
 
-        // Add statis filter
-        if (status !== "") {
-            dataFilter.message_status = status === "true"; // Convert to boolean
+        // Add massage filter
+        const allowedStatuses = ['pending', 'completed', 'cancelled'];
+        if (status !== "" && allowedStatuses.includes(status)) {
+            dataFilter.status = status;
         }
 
         // Add date filter
@@ -148,7 +148,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { first_name, last_name, user_name, gender, country, address } = req.body;
+        const { name, email, phone, address, subject, message, } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -156,12 +156,12 @@ export const update = async (req, res) => {
         }
 
         // check exist data
-        const findOne = await AuthModel.findById(id);
+        const findOne = await ContactFormModel.findById(id);
         if (!findOne) {
             return res.json({ message: "Item not found" });
         }
 
-        const requiredFields = ['first_name', 'last_name', 'user_name'];
+        const requiredFields = ['name', 'email', 'phone', 'address', 'subject', 'message'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -169,39 +169,15 @@ export const update = async (req, res) => {
             }
         }
 
-        // Check for spaces or uppercase letters in the username
-        if (/\s/.test(user_name) || /[A-Z]/.test(user_name)) {
-            return res.json({ user_name: 'Username cannot contain spaces or uppercase letters' });
-        }
-
-        // existing date chack
-        const existData = await AuthModel.findOne({ user_name: user_name.toLowerCase() });
-        if (existData && existData._id.toString() !== id) {
-            return res.status(400).json({ user_name: 'Username already exists' });
-        }
-
-        // attachment upload
-        let attachment = findOne.attachment;
-        if (req.file && req.file.path) {
-            const cloudinaryResult = await uploadCloudinary(req.file.path, 'User Image');
-            if (cloudinaryResult) {
-                if (findOne.attachment && findOne.attachment.public_id) {
-                    await cloudinary.uploader.destroy(findOne.attachment.public_id);
-                }
-                attachment = cloudinaryResult;
-            }
-        }
-
         // update
-        const result = await AuthModel.findByIdAndUpdate(id, {
-            first_name: first_name,
-            last_name: last_name,
-            full_name: first_name + " " + last_name,
-            user_name: user_name.toLowerCase(),
-            gender: gender,
-            country: country,
+        const result = await ContactFormModel.findByIdAndUpdate(id, {
+            date_and_time: formatDateTime(Date.now()),
+            name: name,
+            email: email,
+            phone: phone,
             address: address,
-            attachment: attachment
+            subject: subject,
+            message: message
         }, { new: true })
 
         if (result) {
