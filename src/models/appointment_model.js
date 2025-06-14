@@ -28,7 +28,7 @@ const AppointmentSchema = new mongoose.Schema({
         required: true,
         default: Date.now()
     },
-
+    
     meeting_date_formated: {
         type: String,
         trim: true
@@ -75,7 +75,8 @@ const AppointmentSchema = new mongoose.Schema({
                 return /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/.test(v);
             },
             message: props => `${props.value} is not a valid meeting link for ${this.meeting_type}`
-        }
+        },
+        default: null
     },
 
     status: {

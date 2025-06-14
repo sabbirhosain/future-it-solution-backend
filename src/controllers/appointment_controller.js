@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import AppointmentModel from "../models/appointment_model.js";
 import AuthModel from "../models/auth_model.js";
-import { formatDateTime } from "../utils/helper.js";
+import { formatDateOnly, formatDateTime } from "../utils/helper.js";
 import jwt from 'jsonwebtoken';
 
 export const create = async (req, res) => {
@@ -35,6 +35,7 @@ export const create = async (req, res) => {
             user_id: req.auth._id,
             user: req.auth,
             meeting_date: new Date(meeting_date),
+            meeting_date_formated: formatDateOnly(new Date(meeting_date)),
             meeting_time: meeting_time,
             time_zone_gmt_and_utc: time_zone_gmt_and_utc,
             meeting_type: meeting_type,
@@ -68,12 +69,12 @@ export const show = async (req, res) => {
         // Add search filter
         const dataFilter = {
             $or: [
-                { "appointment_by.full_name": { $regex: searchQuery } },
-                { "appointment_by.country": { $regex: searchQuery } },
-                { "appointment_by.gender": { $regex: searchQuery } },
-                { "appointment_by.address": { $regex: searchQuery } },
-                { "appointment_by.email": { $regex: searchQuery } },
-                { "appointment_by.phone": { $regex: searchQuery } }
+                { "user.full_name": { $regex: searchQuery } },
+                { "user.country": { $regex: searchQuery } },
+                { "user.gender": { $regex: searchQuery } },
+                { "user.address": { $regex: searchQuery } },
+                { "user.email": { $regex: searchQuery } },
+                { "user.phone": { $regex: searchQuery } }
             ]
         };
 
