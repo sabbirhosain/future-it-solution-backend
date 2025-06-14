@@ -3,6 +3,7 @@ import * as AuthController from "../controllers/auth_controller.js";
 import * as PremiumTools from "../controllers/premium_tools.controller.js";
 import * as Appointment from "../controllers/appointment_controller.js";
 import upload from "../multer/multer.js";
+import { isAuthenticated, isLoggedOut } from "../middleware/auth_middleware.js";
 const router = express.Router();
 
 // Public routes || user authorization
@@ -31,7 +32,7 @@ router.put("/premium/tools/:id", PremiumTools.update)
 router.delete("/premium/tools/:id", PremiumTools.destroy)
 
 // Private routes || appointment meeting
-router.post("/appointment/schedule", Appointment.create)
+router.post("/appointment/schedule", isAuthenticated, isLoggedOut, Appointment.create)
 router.get("/appointment/schedule", Appointment.show)
 router.get("/appointment/schedule/:id", Appointment.single)
 router.put("/appointment/schedule/:id", Appointment.update)

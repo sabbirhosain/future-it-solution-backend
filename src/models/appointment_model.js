@@ -11,13 +11,13 @@ const AppointmentSchema = new mongoose.Schema({
         trim: true
     },
 
-    login_user_id: {
+    user_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Authentication',
         required: true
     },
 
-    login_user: {
+    user: {
         type: Object,
         required: true,
         default: null

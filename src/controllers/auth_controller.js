@@ -206,7 +206,7 @@ export const login = async (req, res) => {
         }
 
         // create access token with set the cookie
-        const accessToken = createJSONWebToken({ existing }, process.env.JWT_ACCESS_SECRET_KEY, "1d")
+        const accessToken = createJSONWebToken({ existing }, process.env.JWT_SECRET_KEY, "1d")
         res.cookie('accessToken', accessToken, {
             secure: true,
             httpOnly: true,
@@ -215,7 +215,7 @@ export const login = async (req, res) => {
         })
 
         // create refresh token with set the cookie
-        const refreshToken = createJSONWebToken({ existing }, process.env.JWT_REFRESH_SECRET_KEY, '7d')
+        const refreshToken = createJSONWebToken({ existing }, process.env.JWT_SECRET_KEY, '7d')
         res.cookie('refreshToken', refreshToken, {
             secure: true,
             httpOnly: true,
