@@ -11,16 +11,16 @@ const AppointmentSchema = new mongoose.Schema({
         trim: true
     },
 
-    appointment_by: {
+    login_user_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Authentication',
+        required: true
+    },
+
+    login_user: {
         type: Object,
         required: true,
         default: null
-    },
-
-    created_by: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
     },
 
     meeting_date: {

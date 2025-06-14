@@ -1,29 +1,24 @@
 import mongoose from "mongoose";
 import AppointmentModel from "../models/appointment_model.js";
+import AuthModel from "../models/auth_model.js";
 import { formatDateTime } from "../utils/helper.js";
 import jwt from 'jsonwebtoken';
 
 export const create = async (req, res) => {
     try {
-        // Get access token from cookies
-        const accessToken = req.cookies.accessToken;
-        if (!accessToken) {
-            return res.json({
-                success: false,
-                message: "Unauthorized - No access token found"
-            });
-        }
-
-        // Verify the token and get client info
-        const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET_KEY);
-
-        const { meeting_date, meeting_time, time_zone_gmt_and_utc, meeting_type, meeting_reason } = req.body
-        const requiredFields = ['meeting_date', 'meeting_time', 'time_zone_gmt_and_utc', 'meeting_type', 'meeting_reason'];
+        const { login_user_id, meeting_date, meeting_time, time_zone_gmt_and_utc, meeting_type, meeting_reason } = req.body
+        const requiredFields = ['login_user_id', 'meeting_date', 'meeting_time', 'time_zone_gmt_and_utc', 'meeting_type', 'meeting_reason'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required' });
             }
         }
+
+        // check exist data
+        const findOne = await AuthModel.findById(login_user_id);
+        if (!findOne) {
+            return res.json({ message: "User not found" });
+        }        
 
         // Check for existing appointment
         const existingAppointment = await AppointmentModel.findOne({
@@ -42,7 +37,8 @@ export const create = async (req, res) => {
         // store the value
         const result = await new AppointmentModel({
             date_and_time_formated: formatDateTime(Date.now()),
-            appointment_by: decoded.existing,
+            login_user_id: login_user_id,
+            login_user: findOne,
             meeting_date: new Date(meeting_date),
             meeting_time: meeting_time,
             time_zone_gmt_and_utc: time_zone_gmt_and_utc,
@@ -86,7 +82,7 @@ export const show = async (req, res) => {
             ]
         };
 
-        // Add suspended filter
+        // Add status filter
         const allowedStatuses = ['scheduled', 'completed', 'cancelled', 'rescheduled'];
         if (status !== "" && allowedStatuses.includes(status)) {
             dataFilter.status = status;

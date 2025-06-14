@@ -208,19 +208,19 @@ export const login = async (req, res) => {
         // create access token with set the cookie
         const accessToken = createJSONWebToken({ existing }, process.env.JWT_ACCESS_SECRET_KEY, "1d")
         res.cookie('accessToken', accessToken, {
-            maxAge: 1 * 24 * 60 * 60 * 1000, //1 day
             secure: true,
             httpOnly: true,
-            sameSite: 'none'
+            sameSite: 'none',
+            maxAge: 1 * 24 * 60 * 60 * 1000 //1 day
         })
 
         // create refresh token with set the cookie
         const refreshToken = createJSONWebToken({ existing }, process.env.JWT_REFRESH_SECRET_KEY, '7d')
         res.cookie('refreshToken', refreshToken, {
-            maxAge: 7 * 24 * 60 * 60 * 1000, //7 day
             secure: true,
             httpOnly: true,
-            sameSite: 'none'
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000 //7 day
         })
 
         return res.json({

@@ -90,6 +90,13 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: true
     },
 
+    status: {
+        type: String,
+        trim: true,
+        enum: ['show', 'hide'],
+        default: 'show'
+    },
+
     coupon_code: {
         type: String,
         trim: true,
