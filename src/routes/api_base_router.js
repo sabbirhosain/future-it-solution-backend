@@ -40,7 +40,7 @@ router.get("/appointment/schedule/:id", Appointment.single)
 router.put("/appointment/schedule/:id", Appointment.update)
 router.delete("/appointment/schedule/:id", Appointment.update)
 
-// Private routes || appointment meeting
+// Private routes || contact from
 router.post("/users/contact-form", ContactForm.create)
 router.get("/users/contact-form", ContactForm.show)
 router.get("/users/contact-form/:id", ContactForm.single)

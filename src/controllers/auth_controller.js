@@ -208,6 +208,13 @@ export const login = async (req, res) => {
             });
         }
 
+        if (existing.status === 'hold') {
+            return res.status(403).json({
+                success: false,
+                message: "Account is on hold. Please contact support."
+            });
+        }
+
         // Check password match
         const passwordMatch = await bcrypt.compare(password, existing.password);
         if (!passwordMatch) {
@@ -287,7 +294,7 @@ export const adminLogin = async (req, res) => {
         if (!existing.isAdmin) {
             return res.status(403).json({
                 success: false,
-                message: "Access denied. Admin privileges required."
+                message: "Access denied. Only admin can log in."
             });
         }
 
@@ -296,6 +303,13 @@ export const adminLogin = async (req, res) => {
             return res.status(403).json({
                 success: false,
                 message: "Please verify your email before logging in."
+            });
+        }
+
+        if (existing.status === 'hold') {
+            return res.status(403).json({
+                success: false,
+                message: "Account is on hold. Please contact support."
             });
         }
 
@@ -574,25 +588,108 @@ export const destroy = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
+        // Check if user is already logged out
+        const accessTokenExists = req.cookies.accessToken;
+        const refreshTokenExists = req.cookies.refreshToken;
+
+        if (!accessTokenExists && !refreshTokenExists) {
+            return res.status(200).json({
+                success: false,
+                message: 'User is already logged out.',
+            });
+        }
+
+        // Clear cookies with security options
+        res.clearCookie('accessToken', {
+            httpOnly: true,
+            sameSite: 'none'
+        });
+
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            sameSite: 'none'
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'User logged out success',
+        });
 
     } catch (error) {
-        return res.json({
+        console.error('Logout error:', error);
+        return res.status(500).json({
             success: false,
-            error: error.message || 'Internal Server Error'
+            message: error.message || 'Internal Server Error'
         });
     }
 }
 
 export const passwordChange = async (req, res) => {
     try {
+        const { currentPassword, newPassword, confirmNewPassword } = req.body;
+        const userId = req.user._id; // Assuming user ID is attached from auth middleware
+
+        // Validate inputs
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({
+                success: false,
+                message: 'New passwords do not match'
+            });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 8 characters long'
+            });
+        }
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update password
+        user.password = hashedPassword;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Password changed successfully'
+        });
 
     } catch (error) {
-        return res.json({
+        console.error('Password change error:', error);
+        return res.status(500).json({
             success: false,
-            error: error.message || 'Internal Server Error'
+            message: error.message || 'Internal server error'
         });
     }
-}
+};
 
 export const forgetPassword = async (req, res) => {
     try {
