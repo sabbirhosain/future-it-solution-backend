@@ -1,5 +1,5 @@
-import ContactFormModel from "../models/contact_form_model";
-import { formatDateTime } from "../utils/helper";
+import ContactFormModel from "../models/contact_form_model.js";
+import { formatDateTime } from "../utils/helper.js";
 
 export const create = async (req, res) => {
     try {
