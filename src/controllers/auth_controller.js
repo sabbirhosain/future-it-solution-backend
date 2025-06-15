@@ -164,7 +164,6 @@ export const VerifyManually = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-
         // Check for existing tokens
         if (req.cookies.accessToken || req.cookies.refreshToken) {
             return res.status(400).json({
@@ -172,7 +171,6 @@ export const login = async (req, res) => {
                 message: 'User is already logged in.'
             });
         }
-
 
         const { user, password } = req.body
         if (!user) { return res.json({ user: "Phone or email feild is required" }) }
@@ -185,47 +183,62 @@ export const login = async (req, res) => {
                 { email: user },
                 { phone: user }
             ]
-        })
+        });
 
         if (!existing) {
-            return res.json({ message: "Invalid credentials please register" })
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        // Reject admins
+        if (existing.isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Only user accounts can log in here."
+            });
         }
 
         // Check if email is verified
         if (!existing.isVerified) {
-            return res.json({
+            return res.status(403).json({
                 success: false,
-                message: "Please verify your email before then logging in."
+                message: "Please verify your email before logging in."
             });
         }
 
         // Check password match
         const passwordMatch = await bcrypt.compare(password, existing.password);
         if (!passwordMatch) {
-            return res.json({ message: 'User and password does not match' });
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
         }
 
-        // create access token with set the cookie
-        const accessToken = createJSONWebToken({ existing }, process.env.JWT_SECRET_KEY, "1d")
+        const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
+        const refreshToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, '7d');
+
+        // create access token
         res.cookie('accessToken', accessToken, {
             secure: true,
             httpOnly: true,
             sameSite: 'none',
             maxAge: 1 * 24 * 60 * 60 * 1000 //1 day
-        })
+        });
 
-        // create refresh token with set the cookie
-        const refreshToken = createJSONWebToken({ existing }, process.env.JWT_SECRET_KEY, '7d')
+        // create refresh token
         res.cookie('refreshToken', refreshToken, {
             secure: true,
             httpOnly: true,
             sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000 //7 day
-        })
+        });
 
         return res.json({
             success: true,
-            message: 'Login Success',
+            message: 'User login successful',
             payload: existing,
             accessToken,
             refreshToken
@@ -233,12 +246,103 @@ export const login = async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: error.message || 'Internal Server Error'
         });
     }
-}
+};
+
+export const adminLogin = async (req, res) => {
+    try {
+        // Check for existing tokens
+        if (req.cookies.accessToken || req.cookies.refreshToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'User is already logged in.'
+            });
+        }
+
+        const { user, password } = req.body
+        if (!user) { return res.json({ user: "Phone or email feild is required" }) }
+        if (!password) { return res.json({ password: "Password feild is required" }) }
+
+        // Find by existing username, email, phone
+        const existing = await AuthModel.findOne({
+            $or: [
+                { user_name: user },
+                { email: user },
+                { phone: user }
+            ]
+        });
+
+        if (!existing) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        // Only difference from regular login - checks isAdmi
+        if (!existing.isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Admin privileges required."
+            });
+        }
+
+        // Check if email is verified
+        if (!existing.isVerified) {
+            return res.status(403).json({
+                success: false,
+                message: "Please verify your email before logging in."
+            });
+        }
+
+        // Check password match
+        const passwordMatch = await bcrypt.compare(password, existing.password);
+        if (!passwordMatch) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
+        }
+
+        const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
+        const refreshToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, '7d');
+
+        // create access token
+        res.cookie('accessToken', accessToken, {
+            secure: true,
+            httpOnly: true,
+            sameSite: 'none',
+            maxAge: 1 * 24 * 60 * 60 * 1000 //1 day
+        });
+
+        // create refresh token
+        res.cookie('refreshToken', refreshToken, {
+            secure: true,
+            httpOnly: true,
+            sameSite: 'none',
+            maxAge: 7 * 24 * 60 * 60 * 1000 //7 day
+        });
+
+        return res.json({
+            success: true,
+            message: 'Admin login successful',
+            payload: existing,
+            accessToken,
+            refreshToken
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+};
 
 export const show = async (req, res) => {
     try {

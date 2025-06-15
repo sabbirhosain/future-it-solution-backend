@@ -10,6 +10,7 @@ const router = express.Router();
 // Public routes || user authorization
 router.post("/auth/register", AuthController.register)
 router.post("/auth/login", AuthController.login)
+router.post("/auth/admin/login", AuthController.adminLogin)
 router.get("/auth/verify-email", AuthController.verifyEmail)
 
 // Private routes || user authorization
