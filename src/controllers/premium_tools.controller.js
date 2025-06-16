@@ -5,7 +5,7 @@ import PremiumToolsModel from "../models/premium_tools_model.js";
 export const create = async (req, res) => {
     try {
         const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code } = req.body;
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note'];
+        const requiredFields = ['tools_name', 'short_description', 'long_description'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required (string)' });
@@ -111,6 +111,15 @@ export const create = async (req, res) => {
                     message: 'Error processing file upload'
                 });
             }
+        }
+
+        // existing tools name chack
+        const existing = await PremiumToolsModel.exists({
+            $or: [{ tools_name: tools_name }]
+        });
+
+        if (existing) {
+            return res.json({ message: "The Name is already exist. try another" });
         }
 
         // store the user value
@@ -359,6 +368,15 @@ export const update = async (req, res) => {
             }
         }
 
+
+        // existing tools name chack
+        const existing = await PremiumToolsModel.exists({
+            $or: [{ tools_name: tools_name }]
+        });
+
+        if (existing) {
+            return res.json({ message: "The Name is already exist. try another" });
+        }
 
         // update
         const result = await PremiumToolsModel.findByIdAndUpdate(id, {
