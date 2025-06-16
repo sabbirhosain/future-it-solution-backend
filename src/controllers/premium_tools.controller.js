@@ -4,8 +4,8 @@ import PremiumToolsModel from "../models/premium_tools_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code } = req.body;
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'status', 'coupon_code'];
+        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, discount, coupon_code } = req.body;
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required (string)' });
@@ -56,10 +56,6 @@ export const create = async (req, res) => {
 
             if (tier.expired_type && !['Day', 'Month', 'Year'].includes(tier.expired_type)) {
                 tierErrors.push('Expired type must be Day, Month, or Year if provided');
-            }
-
-            if (tier.discount !== undefined && tier.discount !== null && (tier.discount < 0 || tier.discount > 100)) {
-                tierErrors.push('Discount must be between 0 and 100');
             }
 
             if (tierErrors.length > 0) {
@@ -129,6 +125,7 @@ export const create = async (req, res) => {
             important_note: important_note,
             coupon_code: coupon_code,
             status: status,
+            discount: discount,
             attachment: attachment
         }).save();
 
@@ -237,7 +234,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, discount, coupon_code } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -250,7 +247,7 @@ export const update = async (req, res) => {
             return res.json({ message: "Item not found" });
         }
 
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'status', 'coupon_code'];
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -302,10 +299,6 @@ export const update = async (req, res) => {
 
             if (tier.expired_type && !['Day', 'Month', 'Year'].includes(tier.expired_type)) {
                 tierErrors.push('Expired type must be Day, Month, or Year if provided');
-            }
-
-            if (tier.discount !== undefined && tier.discount !== null && (tier.discount < 0 || tier.discount > 100)) {
-                tierErrors.push('Discount must be between 0 and 100');
             }
 
             if (tierErrors.length > 0) {
@@ -380,6 +373,7 @@ export const update = async (req, res) => {
             important_note: important_note,
             coupon_code: coupon_code,
             status: status,
+            discount: discount,
             attachment: attachment
         }, { new: true })
 
