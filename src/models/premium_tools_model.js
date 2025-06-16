@@ -32,15 +32,20 @@ const PremiumToolsSchema = new mongoose.Schema({
 
     pricing_tiers: {
         type: [{
+            package_name: {
+                type: String,
+                required: true,
+                trim: true
+            },
             quantity: {
                 type: Number,
                 required: true,
-                min: 1
+                min: 1,
             },
             price: {
                 type: Number,
                 required: true,
-                min: 0
+                min: 0,
             },
             currency: {
                 type: String,
@@ -61,8 +66,8 @@ const PremiumToolsSchema = new mongoose.Schema({
             },
             discount: {
                 type: Number,
-                default: 0,
-                min: 0
+                min: 0,
+                default: 0
             },
         }]
     },

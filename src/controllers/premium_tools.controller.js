@@ -38,6 +38,10 @@ export const create = async (req, res) => {
         pricing_tiers.forEach((tier, index) => {
             const tierErrors = [];
 
+            if (!tier.package_name || typeof tier.package_name !== 'string' || tier.package_name.trim() === '') {
+                tierErrors.push('Package name is required and must be a non-empty string');
+            }
+
             if (tier.quantity === undefined || tier.quantity === null || tier.quantity <= 0) {
                 tierErrors.push('Quantity is required and must be greater than 0');
             }
@@ -282,6 +286,10 @@ export const update = async (req, res) => {
         pricing_tiers.forEach((tier, index) => {
             const tierErrors = [];
 
+            if (!tier.package_name || typeof tier.package_name !== 'string' || tier.package_name.trim() === '') {
+                tierErrors.push('Package name is required and must be a non-empty string');
+            }
+            
             if (tier.quantity === undefined || tier.quantity === null || tier.quantity <= 0) {
                 tierErrors.push('Quantity is required and must be greater than 0');
             }
