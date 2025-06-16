@@ -12,6 +12,14 @@ export const create = async (req, res) => {
             }
         }
 
+        // Validate short_description character count (max 100 characters)
+        if (short_description.length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Short description must be 100 characters or less'
+            });
+        }
+
         // Validate additional_feature are arrays
         if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
@@ -259,6 +267,14 @@ export const update = async (req, res) => {
             if (!value || value.trim() === '') {
                 return res.status(400).json({ [field]: 'is required and cannot be empty' });
             }
+        }
+
+        // Validate short_description character count (max 100 characters)
+        if (short_description.length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Short description must be 100 characters or less'
+            });
         }
 
         // Validate additional_feature are arrays
