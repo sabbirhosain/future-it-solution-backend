@@ -25,11 +25,6 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: [],
     },
 
-    package_details: {
-        type: [String],
-        default: [],
-    },
-
     pricing_tiers: {
         type: [{
             package_name: {

@@ -4,8 +4,8 @@ import PremiumToolsModel from "../models/premium_tools_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code } = req.body;
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
+        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code } = req.body;
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required (string)' });
@@ -16,13 +16,6 @@ export const create = async (req, res) => {
         if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
                 additional_feature: 'must be arrays'
-            });
-        }
-
-        // Validate package_details are arrays
-        if (!Array.isArray(package_details)) {
-            return res.status(400).json({
-                package_details: 'must be arrays'
             });
         }
 
@@ -126,7 +119,6 @@ export const create = async (req, res) => {
             short_description: short_description,
             long_description: long_description,
             additional_feature: additional_feature,
-            package_details: package_details,
             pricing_tiers: pricing_tiers,
             important_note: important_note,
             coupon_code: coupon_code,
@@ -239,7 +231,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -252,7 +244,7 @@ export const update = async (req, res) => {
             return res.json({ message: "Item not found" });
         }
 
-        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note', 'coupon_code'];
+        const requiredFields = ['tools_name', 'short_description', 'long_description', 'important_note'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -264,13 +256,6 @@ export const update = async (req, res) => {
         if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
                 additional_feature: 'must be arrays'
-            });
-        }
-
-        // Validate package_details are arrays
-        if (!Array.isArray(package_details)) {
-            return res.status(400).json({
-                package_details: 'must be arrays'
             });
         }
 
@@ -289,7 +274,7 @@ export const update = async (req, res) => {
             if (!tier.package_name || typeof tier.package_name !== 'string' || tier.package_name.trim() === '') {
                 tierErrors.push('Package name is required and must be a non-empty string');
             }
-            
+
             if (tier.quantity === undefined || tier.quantity === null || tier.quantity <= 0) {
                 tierErrors.push('Quantity is required and must be greater than 0');
             }
@@ -381,10 +366,8 @@ export const update = async (req, res) => {
             short_description: short_description,
             long_description: long_description,
             additional_feature: additional_feature,
-            package_details: package_details,
             pricing_tiers: pricing_tiers,
             important_note: important_note,
-            coupon_code: coupon_code,
             status: status,
             attachment: attachment
         }, { new: true })
