@@ -58,14 +58,13 @@ const PremiumToolsSchema = new mongoose.Schema({
                 trim: true,
                 enum: ['Day', 'Month', 'Year'],
                 default: 'Day'
-            }
+            },
+            discount: {
+                type: Number,
+                default: 0,
+                min: 0
+            },
         }]
-    },
-
-    discount: {
-        type: Number,
-        default: 0,
-        min: 0
     },
 
     rating: {
