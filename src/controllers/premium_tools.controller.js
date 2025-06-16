@@ -152,7 +152,7 @@ export const create = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { available, status } = req.query;
+        const { status } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -160,14 +160,10 @@ export const show = async (req, res) => {
         // Add search filter
         const dataFilter = {
             $or: [
-                { "tools_name": { $regex: searchQuery } },
-            ]
+                { tools_name: { $regex: searchQuery } }
+            ],
         };
 
-        // Add suspended filter
-        if (available !== "") {
-            dataFilter.available = available === "true";
-        }
 
         // Add status filter
         const allowedStatuses = ['show', 'hide'];
@@ -241,7 +237,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code, available } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, package_details, pricing_tiers, important_note, status, coupon_code } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -383,7 +379,6 @@ export const update = async (req, res) => {
             pricing_tiers: pricing_tiers,
             important_note: important_note,
             coupon_code: coupon_code,
-            available: available,
             status: status,
             attachment: attachment
         }, { new: true })

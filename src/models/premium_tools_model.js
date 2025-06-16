@@ -85,11 +85,6 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: null
     },
 
-    available: {
-        type: Boolean,
-        default: true
-    },
-
     status: {
         type: String,
         trim: true,
