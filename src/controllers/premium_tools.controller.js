@@ -13,7 +13,7 @@ export const create = async (req, res) => {
         }
 
         // Validate short_description character count (max 100 characters)
-        if (short_description.length > 50) {
+        if (short_description.length > 100) {
             return res.status(400).json({
                 success: false,
                 message: 'Short description must be 100 characters or less'

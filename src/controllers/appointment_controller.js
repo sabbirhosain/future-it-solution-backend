@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import AppointmentModel from "../models/appointment_model.js";
-import AuthModel from "../models/auth_model.js";
 import { formatDateOnly, formatDateTime } from "../utils/helper.js";
 import jwt from 'jsonwebtoken';
 
