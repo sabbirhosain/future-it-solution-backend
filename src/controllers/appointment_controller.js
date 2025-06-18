@@ -23,7 +23,7 @@ export const create = async (req, res) => {
         if (existingAppointment) {
             return res.json({
                 success: false,
-                message: "The meeting is already scheduled. Please choose another time"
+                message: "The meeting time is already scheduled. Please choose a different time."
             });
         }
 
@@ -43,7 +43,7 @@ export const create = async (req, res) => {
         if (result) {
             return res.json({
                 success: true,
-                message: 'Appointment created success',
+                message: 'The scheduled appointment was successful.',
                 payload: result
             });
         }
