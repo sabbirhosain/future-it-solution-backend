@@ -16,19 +16,9 @@ export const isAuthenticated = async (req, res, next) => {
 
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-        
-        // Check if user exists
-        const response = await AuthModel.findById(decoded?.existing?._id);
-        if (!response) {
-            return res.status(401).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        // Attach auth to request
-        req.auth = response;
+        req.auth = decoded;
         next();
+        
     } catch (error) {
         return res.status(401).json({
             success: false,

@@ -43,7 +43,7 @@ const ContactFormSchema = new mongoose.Schema({
         trim: true
     },
 
-    message_status: {
+    status: {
         type: String,
         enum: ['pending', 'completed', 'cancelled'],
         default: 'pending'

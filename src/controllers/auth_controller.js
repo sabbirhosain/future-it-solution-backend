@@ -164,17 +164,9 @@ export const VerifyManually = async (req, res) => {
 
 export const login = async (req, res) => {
     try {
-        // Check for existing tokens
-        if (req.cookies.accessToken || req.cookies.refreshToken) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already logged in.'
-            });
-        }
-
         const { user, password } = req.body
-        if (!user) { return res.json({ user: "Phone or email feild is required" }) }
-        if (!password) { return res.json({ password: "Password feild is required" }) }
+        if (!user) { return res.json({ user: "feild is required" }) }
+        if (!password) { return res.json({ password: "feild is required" }) }
 
         // Find by existing username, email, phone
         const existing = await AuthModel.findOne({
@@ -188,7 +180,7 @@ export const login = async (req, res) => {
         if (!existing) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid credentials"
+                message: "Invalid credentials. Please register."
             });
         }
 
@@ -262,14 +254,6 @@ export const login = async (req, res) => {
 
 export const adminLogin = async (req, res) => {
     try {
-        // Check for existing tokens
-        if (req.cookies.accessToken || req.cookies.refreshToken) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already logged in.'
-            });
-        }
-
         const { user, password } = req.body
         if (!user) { return res.json({ user: "Phone or email feild is required" }) }
         if (!password) { return res.json({ password: "Password feild is required" }) }
@@ -770,7 +754,21 @@ export const tokenGenerate = async (req, res) => {
 
 export const protectedRoutes = async (req, res) => {
     try {
+        const accessToken = req.cookies?.accessToken
+        if (!accessToken) {
+            return res.json({ message: 'Access denied. No token provided. Please login' });
+        }
+        const decoded = JWT.verify(accessToken, process.env.JWT_SECRET_KEY)
+        if (!decoded) {
+            return res.json({ message: 'Invalid token. Please login' });
+        }
 
+        if (decoded) {
+            return res.json({
+                success: true,
+                massage: 'Protected routes successful',
+            });
+        }
     } catch (error) {
         return res.json({
             success: false,

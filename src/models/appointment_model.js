@@ -11,12 +11,6 @@ const AppointmentSchema = new mongoose.Schema({
         trim: true
     },
 
-    user_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Authentication',
-        required: true
-    },
-
     user: {
         type: Object,
         required: true,
@@ -40,7 +34,7 @@ const AppointmentSchema = new mongoose.Schema({
         trim: true,
     },
 
-    meeting_date_and_time: {
+    meeting_bangladesh_time: {
         type: String,
         trim: true,
         default: null

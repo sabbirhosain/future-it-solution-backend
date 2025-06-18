@@ -67,7 +67,31 @@ const PremiumToolsSchema = new mongoose.Schema({
         }]
     },
 
-    rating: {
+    reviews: {
+        type: [{
+            user: {
+                type: Object,
+                required: true,
+                default: null
+            },
+            review_date_and_time: {
+                type: Date,
+                default: Date.now()
+            },
+            rating: {
+                type: Number,
+                trim: true,
+                default: 0
+            },
+            message: {
+                type: String,
+                trim: true,
+                default: null
+            },
+        }]
+    },
+
+    total_rating: {
         type: Number,
         trim: true,
         default: 0

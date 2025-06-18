@@ -5,14 +5,13 @@ import jwt from 'jsonwebtoken';
 
 export const create = async (req, res) => {
     try {
-        const { meeting_date, meeting_time, time_zone_gmt_and_utc, meeting_type, meeting_reason } = req.body
+        const { meeting_date, meeting_time, meeting_bangladesh_time, time_zone_gmt_and_utc, meeting_type, meeting_reason } = req.body
         const requiredFields = ['meeting_date', 'meeting_time', 'time_zone_gmt_and_utc', 'meeting_type', 'meeting_reason'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required' });
             }
         }
-
 
         // Check for existing appointment
         const existingAppointment = await AppointmentModel.findOne({
@@ -30,12 +29,12 @@ export const create = async (req, res) => {
 
         // store the value
         const result = await new AppointmentModel({
-            date_and_time_formated: formatDateTime(Date.now()),
-            user_id: req.auth._id,
             user: req.auth,
+            date_and_time_formated: formatDateTime(Date.now()),
             meeting_date: new Date(meeting_date),
             meeting_date_formated: formatDateOnly(new Date(meeting_date)),
             meeting_time: meeting_time,
+            meeting_bangladesh_time: meeting_bangladesh_time,
             time_zone_gmt_and_utc: time_zone_gmt_and_utc,
             meeting_type: meeting_type,
             meeting_reason: meeting_reason
