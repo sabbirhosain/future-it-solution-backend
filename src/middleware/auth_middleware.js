@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import AuthModel from "../models/auth_model.js";
 
 // Check if user is authenticated
 export const isAuthenticated = async (req, res, next) => {
@@ -10,7 +9,7 @@ export const isAuthenticated = async (req, res, next) => {
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: 'Please login to access this resource'
+                message: 'Access Denied. Please Send Your Token'
             });
         }
 
@@ -18,11 +17,26 @@ export const isAuthenticated = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
         req.auth = decoded;
         next();
-        
+
     } catch (error) {
+        // Handle specific JWT errors
+        if (error instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token expired'
+            });
+        }
+
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid token'
+            });
+        }
+
         return res.status(401).json({
             success: false,
-            message: 'Invalid or expired token'
+            message: 'Internal server error during token verification'
         });
     }
 };

@@ -12,6 +12,7 @@ router.post("/auth/register", AuthController.register)
 router.post("/auth/login", AuthController.login)
 router.post("/auth/admin/login", AuthController.adminLogin)
 router.get("/auth/verify-email", AuthController.verifyEmail)
+router.post("/auth/verify-token", AuthController.verifyToken)
 
 // Private routes || user authorization
 // router.post("/auth/users/logout", AuthController.logout)
@@ -47,7 +48,7 @@ router.get("/users/contact-form/:id", ContactForm.single)
 router.put("/users/contact-form/:id", ContactForm.update)
 router.delete("/users/contact-form/:id", ContactForm.update)
 
-
+                     
 
 
 export default router;

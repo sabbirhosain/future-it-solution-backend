@@ -7,6 +7,7 @@ import { formatDateTime } from "../utils/helper.js";
 import { sendEmail } from "../utils/node_mailer.js";
 import { uploadCloudinary } from "../multer/cloudinary.js";
 import { v2 as cloudinary } from 'cloudinary';
+import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -212,7 +213,7 @@ export const login = async (req, res) => {
         if (!passwordMatch) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid credentials'
+                message: 'Invalid credentials. Please try again.'
             });
         }
 
@@ -569,6 +570,51 @@ export const destroy = async (req, res) => {
         });
     }
 }
+
+export const verifyToken = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        // Validate input
+        if (!token || typeof token !== 'string') {
+            return res.status(400).json({
+                isValid: false,
+                message: 'Token is required and must be a string'
+            });
+        }
+
+        // Verify token
+        JWT.verify(token, process.env.JWT_SECRET_KEY);
+
+        return res.json({
+            isValid: true,
+            message: 'Token is valid',
+        });
+
+    } catch (error) {
+        console.error('Token verification error:', error.message);
+
+        // Handle specific JWT errors
+        if (error instanceof JWT.TokenExpiredError) {
+            return res.status(401).json({
+                isValid: false,
+                error: 'Token expired'
+            });
+        }
+
+        if (error instanceof JWT.JsonWebTokenError) {
+            return res.status(401).json({
+                isValid: false,
+                error: 'Invalid token'
+            });
+        }
+
+        return res.status(500).json({
+            isValid: false,
+            error: 'Internal server error during token verification'
+        });
+    }
+};
 
 export const logout = async (req, res) => {
     try {
