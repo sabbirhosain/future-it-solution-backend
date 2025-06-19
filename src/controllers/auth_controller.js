@@ -113,7 +113,7 @@ export const verifyEmail = async (req, res) => {
             await response.save();
         }
 
-        return res.redirect('https://futureitsolution.com/login');
+        return res.redirect(`${process.env.FRONTEND_BASE_URL}/login`);
 
     } catch (error) {
         return res.json({
