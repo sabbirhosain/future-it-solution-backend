@@ -113,10 +113,7 @@ export const verifyEmail = async (req, res) => {
             await response.save();
         }
 
-        return res.json({
-            success: true,
-            message: 'Email verified successfully. You can now log in.'
-        });
+        return res.redirect('https://futureitsolution.com/login');
 
     } catch (error) {
         return res.json({
