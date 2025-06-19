@@ -76,7 +76,7 @@ export const register = async (req, res) => {
                 to: result.email,
                 subject: 'Verify Your Email',
                 first_name: result.first_name,
-                verify_link: `${process.env.BASE_URL}/api/v1/auth/verify-email?token=${verifyToken}&email=${result.email}`
+                verify_link: `${process.env.BACKEND_BASE_URL}/api/v1/auth/verify-email?token=${verifyToken}&email=${result.email}`
             });
 
             return res.json({
