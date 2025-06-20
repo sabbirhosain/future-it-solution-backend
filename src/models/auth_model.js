@@ -48,9 +48,7 @@ const AuthSchema = new mongoose.Schema({
         required: true,
         lowercase: true,
         validate: {
-            validator: function (v) {
-                return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v);
-            },
+            validator: function (v) { return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(v) },
             message: "Please enter a valid email"
         },
     },

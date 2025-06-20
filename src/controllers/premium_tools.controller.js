@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import path from 'path';
 import PremiumToolsModel from "../models/premium_tools_model.js";
+import { uploadCloudinary } from "../multer/cloudinary.js";
 
 export const create = async (req, res) => {
     try {

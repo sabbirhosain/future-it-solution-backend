@@ -123,7 +123,7 @@ export const verifyEmail = async (req, res) => {
     }
 }
 
-export const VerifyManually = async (req, res) => {
+export const verifyManually = async (req, res) => {
     try {
         const { id } = req.params
 
