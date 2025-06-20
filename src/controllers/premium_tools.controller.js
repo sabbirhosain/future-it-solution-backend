@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import path from 'path';
 import PremiumToolsModel from "../models/premium_tools_model.js";
+import { v2 as cloudinary } from 'cloudinary';
 import { uploadCloudinary } from "../multer/cloudinary.js";
 
 export const create = async (req, res) => {
@@ -385,14 +386,12 @@ export const update = async (req, res) => {
             }
         }
 
-
         // existing tools name chack
         const existing = await PremiumToolsModel.exists({
             $or: [{ tools_name: tools_name }]
         });
-
-        if (existing) {
-            return res.json({ message: "The Name is already exist. try another" });
+        if (existing && existing._id.toString() !== id) {
+            return res.status(400).json({ tools_name: 'already exists. try another' });
         }
 
         // update

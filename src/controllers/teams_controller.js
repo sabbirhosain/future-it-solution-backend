@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import TeamsModel from "../models/teams_model.js";
+import { v2 as cloudinary } from 'cloudinary';
 import { uploadCloudinary } from "../multer/cloudinary.js";
 import { formatDateTime } from "../utils/helper.js";
 import path from 'path';
@@ -47,6 +48,7 @@ export const create = async (req, res) => {
                 }
 
                 const cloudinaryResult = await uploadCloudinary(req.file.path, 'Our Teams');
+
                 if (cloudinaryResult) {
                     attachment = cloudinaryResult;
                 }
@@ -231,9 +233,10 @@ export const update = async (req, res) => {
                     });
                 }
 
+                // Delete old image if it exists
                 const cloudinaryResult = await uploadCloudinary(req.file.path, 'Our Teams');
+
                 if (cloudinaryResult) {
-                    // Delete old image if it exists
                     if (attachment && attachment.public_id) {
                         await cloudinary.uploader.destroy(attachment.public_id);
                     }
