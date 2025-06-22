@@ -46,7 +46,12 @@ const PremiumToolsSchema = new mongoose.Schema({
                 type: String,
                 required: true,
                 enum: ['BDT', 'USD'],
-                default: 'BDT'
+                default: 'USD'
+            },
+            currency_exchange_price: {
+                type: Number,
+                trim: true,
+                default: 0
             },
             expired: {
                 type: Number,
@@ -116,6 +121,13 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: 'show'
     },
 
+    available: {
+        type: String,
+        trim: true,
+        enum: ['available', 'not_available'],
+        default: 'available'
+    },
+    
     coupon_code: {
         type: String,
         trim: true,

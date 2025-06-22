@@ -1,12 +1,11 @@
 import mongoose from "mongoose";
-import path from 'path';
 import PremiumToolsModel from "../models/premium_tools_model.js";
 import { v2 as cloudinary } from 'cloudinary';
 import { uploadCloudinary } from "../multer/cloudinary.js";
 
 export const create = async (req, res) => {
     try {
-        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, coupon_code } = req.body;
         const requiredFields = ['tools_name', 'short_description', 'long_description'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
@@ -53,6 +52,10 @@ export const create = async (req, res) => {
                 tierErrors.push('Price is required and must be greater than 0');
             }
 
+            if (tier.currency_exchange_price === undefined || tier.currency_exchange_price === null || tier.currency_exchange_price <= 0) {
+                tierErrors.push('Currency exchange is required and must be greater than 0');
+            }
+
             if (!tier.currency || !['BDT', 'USD'].includes(tier.currency)) {
                 tierErrors.push('Currency is required and must be either BDT or USD');
             }
@@ -92,24 +95,6 @@ export const create = async (req, res) => {
         let attachment = null;
         if (req.file && req.file.path) {
             try {
-                const fileExt = path.extname(req.file.originalname).toLowerCase();
-                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
-                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
-
-                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
-                    });
-                }
-
-                if (req.file.size > 5 * 1024 * 1024) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'File too large (max 5MB)'
-                    });
-                }
-
                 const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
                 if (cloudinaryResult) {
                     attachment = cloudinaryResult;
@@ -141,7 +126,6 @@ export const create = async (req, res) => {
             pricing_tiers: pricing_tiers,
             important_note: important_note,
             coupon_code: coupon_code,
-            status: status,
             attachment: attachment
         }).save();
 
@@ -165,7 +149,7 @@ export const create = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { status } = req.query;
+        const { status, available } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -177,12 +161,17 @@ export const show = async (req, res) => {
             ],
         };
 
-
         // Add status filter
         const allowedStatuses = ['show', 'hide'];
         if (status !== "" && allowedStatuses.includes(status)) {
             dataFilter.status = status;
         }
+
+        const allowedAvailable = ['available', 'not_available'];
+        if (available !== "" && allowedAvailable.includes(available)) {
+            dataFilter.available = available;
+        }
+
 
         const result = await PremiumToolsModel.find(dataFilter)
             .sort({ createdAt: -1 })
@@ -250,7 +239,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code, available } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -351,29 +340,10 @@ export const update = async (req, res) => {
         let attachment = findOne.attachment;
         if (req.file && req.file.path) {
             try {
-                const fileExt = path.extname(req.file.originalname).toLowerCase();
-                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
-                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
-
-                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
-                    });
-                }
-
-                if (req.file.size > 5 * 1024 * 1024) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'File too large (max 5MB)'
-                    });
-                }
-
                 const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
                 if (cloudinaryResult) {
-                    // Delete old image if it exists
                     if (attachment && attachment.public_id) {
-                        await cloudinary.uploader.destroy(attachment.public_id);
+                        await cloudinary.uploader.destroy(attachment.public_id); // Delete old image if it exists
                     }
                     attachment = cloudinaryResult;
                 }
@@ -403,6 +373,7 @@ export const update = async (req, res) => {
             pricing_tiers: pricing_tiers,
             important_note: important_note,
             status: status,
+            available: available,
             attachment: attachment
         }, { new: true })
 

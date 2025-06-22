@@ -69,6 +69,12 @@ const TeamsSchema = new mongoose.Schema({
         default: null
     },
 
+    status: {
+        type: Boolean,
+        trim: true,
+        default: true
+    },
+
     social_media: {
         type: String,
         trim: true,
