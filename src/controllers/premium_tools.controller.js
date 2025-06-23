@@ -13,6 +13,15 @@ export const create = async (req, res) => {
             }
         }
 
+        // existing tools name chack
+        const existing = await PremiumToolsModel.exists({
+            $or: [{ tools_name: tools_name }]
+        });
+
+        if (existing) {
+            return res.json({ message: "The Name is already exist. try another" });
+        }
+
         // Validate short_description character count (max 100 characters)
         if (short_description.length > 100) {
             return res.status(400).json({
@@ -108,14 +117,6 @@ export const create = async (req, res) => {
             }
         }
 
-        // existing tools name chack
-        const existing = await PremiumToolsModel.exists({
-            $or: [{ tools_name: tools_name }]
-        });
-
-        if (existing) {
-            return res.json({ message: "The Name is already exist. try another" });
-        }
 
         // store the user value
         const result = await new PremiumToolsModel({
@@ -149,7 +150,7 @@ export const create = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { status, available } = req.query;
+        const { status, availability } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -167,11 +168,11 @@ export const show = async (req, res) => {
             dataFilter.status = status;
         }
 
-        const allowedAvailable = ['available', 'not_available'];
-        if (available !== "" && allowedAvailable.includes(available)) {
-            dataFilter.available = available;
+        // Add availability filter
+        const allowedAvailability = ['available', 'unavailable'];
+        if (availability !== "" && allowedAvailability.includes(availability)) {
+            dataFilter.availability = availability;
         }
-
 
         const result = await PremiumToolsModel.find(dataFilter)
             .sort({ createdAt: -1 })
@@ -239,7 +240,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code, available } = req.body;
+        const { tools_name, short_description, long_description, additional_feature, pricing_tiers, important_note, status, coupon_code, availability } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -260,8 +261,14 @@ export const update = async (req, res) => {
             }
         }
 
+        // existing tools name chack
+        const existing = await PremiumToolsModel.findOne({ tools_name: tools_name });
+        if (existing && existing._id.toString() !== id) {
+            return res.status(400).json({ tools_name: 'already exists. try another' });
+        }
+
         // Validate short_description character count (max 100 characters)
-        if (short_description.length > 50) {
+        if (short_description.length > 100) {
             return res.status(400).json({
                 success: false,
                 message: 'Short description must be 100 characters or less'
@@ -271,7 +278,7 @@ export const update = async (req, res) => {
         // Validate additional_feature are arrays
         if (!Array.isArray(additional_feature)) {
             return res.status(400).json({
-                additional_feature: 'must be arrays'
+                additional_feature: 'must be an arrays'
             });
         }
 
@@ -297,6 +304,10 @@ export const update = async (req, res) => {
 
             if (tier.price === undefined || tier.price === null || tier.price <= 0) {
                 tierErrors.push('Price is required and must be greater than 0');
+            }
+
+            if (tier.currency_exchange_price === undefined || tier.currency_exchange_price === null || tier.currency_exchange_price <= 0) {
+                tierErrors.push('Currency exchange is required and must be greater than 0');
             }
 
             if (!tier.currency || !['BDT', 'USD'].includes(tier.currency)) {
@@ -356,14 +367,6 @@ export const update = async (req, res) => {
             }
         }
 
-        // existing tools name chack
-        const existing = await PremiumToolsModel.exists({
-            $or: [{ tools_name: tools_name }]
-        });
-        if (existing && existing._id.toString() !== id) {
-            return res.status(400).json({ tools_name: 'already exists. try another' });
-        }
-
         // update
         const result = await PremiumToolsModel.findByIdAndUpdate(id, {
             tools_name: tools_name,
@@ -373,7 +376,8 @@ export const update = async (req, res) => {
             pricing_tiers: pricing_tiers,
             important_note: important_note,
             status: status,
-            available: available,
+            availability: availability,
+            coupon_code: coupon_code,
             attachment: attachment
         }, { new: true })
 

@@ -121,10 +121,10 @@ const PremiumToolsSchema = new mongoose.Schema({
         default: 'show'
     },
 
-    available: {
+    availability: {
         type: String,
         trim: true,
-        enum: ['available', 'not_available'],
+        enum: ['available', 'unavailable'],
         default: 'available'
     },
     
