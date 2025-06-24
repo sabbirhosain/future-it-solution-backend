@@ -93,6 +93,17 @@ const PremiumToolsSchema = new mongoose.Schema({
                 trim: true,
                 default: null
             },
+            isApproved: {
+                type: String,
+                trim: true,
+                enum: ['pending', 'approved', 'rejected'],
+                default: 'pending'
+            },
+            message_reply: {
+                type: String,
+                trim: true,
+                default: null
+            },
         }]
     },
 
@@ -127,7 +138,7 @@ const PremiumToolsSchema = new mongoose.Schema({
         enum: ['available', 'unavailable'],
         default: 'available'
     },
-    
+
     coupon_code: {
         type: String,
         trim: true,
