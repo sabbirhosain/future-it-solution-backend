@@ -1,36 +1,47 @@
 import mongoose from "mongoose";
 
-const PremiumToolsSchema = new mongoose.Schema({
-
-    tools_name: {
+const ItemsSchema = new mongoose.Schema({
+    item_name: {
         type: String,
         required: true,
         trim: true
     },
-
+    categories_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Categories',
+        required: true
+    },
+    categories: {
+        type: String,
+        trim: true,
+        default: null
+    },
     short_description: {
         type: String,
         trim: true,
         default: null
     },
-
     long_description: {
         type: String,
         trim: true,
         default: null
     },
-
-    additional_feature: {
-        type: [String],
+    features: {
+        type: Array,
+        trim: true,
         default: [],
     },
-
-    pricing_tiers: {
+    packages: {
         type: [{
             package_name: {
                 type: String,
                 required: true,
                 trim: true
+            },
+            features: {
+                type: Array,
+                trim: true,
+                default: [],
             },
             quantity: {
                 type: Number,
@@ -46,7 +57,7 @@ const PremiumToolsSchema = new mongoose.Schema({
                 type: String,
                 required: true,
                 enum: ['BDT', 'USD'],
-                default: 'USD'
+                default: 'BDT'
             },
             currency_exchange_price: {
                 type: Number,
@@ -69,9 +80,19 @@ const PremiumToolsSchema = new mongoose.Schema({
                 min: 0,
                 default: 0
             },
+            isRecommended: {
+                type: Boolean,
+                default: false
+            },
+            coupon_code: {
+                type: String,
+                trim: true,
+                uppercase: true,
+                match: [/^[A-Z0-9-]+$/, "Coupon code can only contain letters, numbers, and hyphens"],
+                default: null
+            }
         }]
     },
-
     reviews: {
         type: [{
             user: {
@@ -103,50 +124,36 @@ const PremiumToolsSchema = new mongoose.Schema({
                 type: String,
                 trim: true,
                 default: null
-            },
+            }
         }]
     },
-
-    total_rating: {
+    avg_rating: {
         type: Number,
         trim: true,
         default: 0
     },
-
     total_sold: {
         type: Number,
         trim: true,
         default: 0
     },
-
-    important_note: {
+    notes: {
         type: String,
         trim: true,
         default: null
     },
-
     status: {
         type: String,
         trim: true,
         enum: ['show', 'hide'],
         default: 'show'
     },
-
     availability: {
         type: String,
         trim: true,
         enum: ['available', 'unavailable'],
         default: 'available'
     },
-
-    coupon_code: {
-        type: String,
-        trim: true,
-        default: null,
-        uppercase: true,
-        match: [/^[A-Z0-9-]+$/, "Coupon code can only contain letters, numbers, and hyphens"]
-    },
-
     attachment: {
         type: Object,
         default: null
@@ -154,5 +161,5 @@ const PremiumToolsSchema = new mongoose.Schema({
 
 }, { timestamps: true })
 
-const PremiumToolsModel = mongoose.model("PremiumTools", PremiumToolsSchema);
-export default PremiumToolsModel
+const ItemsModel = mongoose.model("Items", ItemsSchema);
+export default ItemsModel

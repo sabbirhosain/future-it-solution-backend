@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const TeamsSchema = new mongoose.Schema({
+const OurTeamsSchema = new mongoose.Schema({
     date_and_time: {
         type: Date,
         default: Date.now()
@@ -114,5 +114,5 @@ const TeamsSchema = new mongoose.Schema({
 
 }, { timestamps: true })
 
-const TeamsModel = mongoose.model("Teams", TeamsSchema);
-export default TeamsModel
+const OurTeamsModel = mongoose.model("OurTeams", OurTeamsSchema);
+export default OurTeamsModel

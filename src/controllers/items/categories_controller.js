@@ -1,57 +1,29 @@
 import mongoose from "mongoose";
-import TeamsModel from "../models/teams_model.js";
 import { v2 as cloudinary } from 'cloudinary';
-import { uploadCloudinary } from "../multer/cloudinary.js";
-import { formatDateTime } from "../utils/helper.js";
-import path from 'path';
+import { uploadCloudinary } from "../../multer/cloudinary.js";
+import CategoriesModel from "../../models/items/categories_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { date_and_time, first_name, last_name, title, phone, email, gender, country, address, social_media, description } = req.body;
-        const requiredFields = ['first_name', 'last_name', 'title', 'phone', 'email', 'gender', 'country', 'address'];
+        const { categories } = req.body;
+        const requiredFields = ['categories'];
         for (let field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({ [field]: 'Field is required' });
             }
         }
 
-        // Email domain validation
-        const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'icloud.com', 'aol.com', 'mail.com', 'protonmail.com', 'zoho.com', 'gmx.com', 'rediffmail.com', 'naver.com', 'qq.com'];
-        const emailDomain = email.split('@')[1]?.toLowerCase();
-        if (!allowedDomains.includes(emailDomain)) {
-            return res.status(400).json({
-                email: 'Only personal email addresses are allowed'
-            });
-        }
+        // Check if phone or email already exists
+        const existingPhone = await CategoriesModel.findOne({ categories: categories });
+        if (existingPhone) { return res.json({ message: "Categories already exists." }) };
 
 
         // File upload handling
         let attachment = null;
         if (req.file && req.file.path) {
             try {
-                const fileExt = path.extname(req.file.originalname).toLowerCase();
-                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
-                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
-
-                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
-                    });
-                }
-
-                if (req.file.size > 5 * 1024 * 1024) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'File too large (max 5MB)'
-                    });
-                }
-
-                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Our Teams');
-
-                if (cloudinaryResult) {
-                    attachment = cloudinaryResult;
-                }
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Categories');
+                if (cloudinaryResult) { attachment = cloudinaryResult }
 
             } catch (fileError) {
                 console.error('File upload error:', fileError);
@@ -63,20 +35,8 @@ export const create = async (req, res) => {
         }
 
         // store the user value
-        const result = await new TeamsModel({
-            date_and_time: date_and_time || new Date(),
-            date_and_time_formated: formatDateTime(date_and_time || new Date()),
-            first_name: first_name,
-            last_name: last_name,
-            full_name: `${first_name} ${last_name}`,
-            title: title,
-            email: email,
-            phone: phone,
-            gender: gender,
-            country: country,
-            address: address,
-            social_media: social_media,
-            description: description,
+        const result = await new CategoriesModel({
+            categories: categories,
             attachment: attachment
         }).save();
 
@@ -99,7 +59,6 @@ export const create = async (req, res) => {
 export const show = async (req, res) => {
     try {
         const search = req.query.search || "";
-        const { form_date = "", to_date = "" } = req.query;
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 2;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
@@ -107,29 +66,16 @@ export const show = async (req, res) => {
         // Add search filter
         const dataFilter = {
             $or: [
-                { name: { $regex: searchQuery } },
-                { email: { $regex: searchQuery } },
-                { phone: { $regex: searchQuery } },
+                { categories: { $regex: searchQuery } },
             ]
         }
 
-        // Add date filter
-        if (form_date || to_date) {
-            dataFilter.date_and_time = {};
-            if (form_date) {
-                dataFilter.date_and_time.$gte = new Date(form_date); // From date
-            }
-            if (to_date) {
-                dataFilter.date_and_time.$lte = new Date(to_date); // To date
-            }
-        }
-
-        const result = await TeamsModel.find(dataFilter)
+        const result = await CategoriesModel.find(dataFilter)
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip((page - 1) * limit)
 
-        const count = await TeamsModel.find(dataFilter).countDocuments();
+        const count = await CategoriesModel.find(dataFilter).countDocuments();
 
         // Check not found
         if (result.length === 0) {
@@ -166,7 +112,7 @@ export const single = async (req, res) => {
             return res.json({ success: false, message: "Invalid ID format" });
         }
 
-        const result = await TeamsModel.findById(id);
+        const result = await CategoriesModel.findById(id);
 
         // Check not found
         if (!result) {
@@ -190,7 +136,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { date_and_time, first_name, last_name, title, phone, email, gender, country, address, social_media, description } = req.body;
+        const { categories } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -198,12 +144,10 @@ export const update = async (req, res) => {
         }
 
         // check exist data
-        const findOne = await TeamsModel.findById(id);
-        if (!findOne) {
-            return res.json({ message: "Item not found" });
-        }
+        const findOne = await CategoriesModel.findById(id);
+        if (!findOne) { return res.json({ message: "Item not found" }) }
 
-        const requiredFields = ['first_name', 'last_name', 'title', 'phone', 'email', 'gender', 'country', 'address'];
+        const requiredFields = ['categories'];
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
@@ -211,34 +155,20 @@ export const update = async (req, res) => {
             }
         }
 
+        // existing tools name chack
+        const existing = await CategoriesModel.findOne({ categories: categories });
+        if (existing && existing._id.toString() !== id) {
+            return res.status(400).json({ categories: 'already exists. try another' });
+        }
+
         // file upload
         let attachment = findOne.attachment;
         if (req.file && req.file.path) {
             try {
-                const fileExt = path.extname(req.file.originalname).toLowerCase();
-                const validExts = ['.jpg', '.jpeg', '.png', '.webp'];
-                const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
-
-                if (!validExts.includes(fileExt) || !validMimes.includes(req.file.mimetype)) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid file type. Allowed: JPG, JPEG, PNG, WEBP'
-                    });
-                }
-
-                if (req.file.size > 5 * 1024 * 1024) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'File too large (max 5MB)'
-                    });
-                }
-
-                // Delete old image if it exists
-                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Our Teams');
-
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Categories');
                 if (cloudinaryResult) {
                     if (attachment && attachment.public_id) {
-                        await cloudinary.uploader.destroy(attachment.public_id);
+                        await cloudinary.uploader.destroy(attachment.public_id); // Delete old image if it exists
                     }
                     attachment = cloudinaryResult;
                 }
@@ -252,20 +182,8 @@ export const update = async (req, res) => {
         }
 
         // update
-        const result = await TeamsModel.findByIdAndUpdate(id, {
-            date_and_time: date_and_time || new Date(),
-            date_and_time_formated: formatDateTime(date_and_time || new Date()),
-            first_name: first_name,
-            last_name: last_name,
-            full_name: `${first_name} ${last_name}`,
-            title: title,
-            email: email,
-            phone: phone,
-            gender: gender,
-            country: country,
-            address: address,
-            social_media: social_media,
-            description: description,
+        const result = await CategoriesModel.findByIdAndUpdate(id, {
+            categories: categories,
             attachment: attachment
         }, { new: true })
 
@@ -294,12 +212,23 @@ export const destroy = async (req, res) => {
             return res.json({ success: false, message: "Invalid ID format" });
         }
 
-        const result = await TeamsModel.findByIdAndDelete(id);
+        // check exist data
+        const findOne = await CategoriesModel.findById(id);
+        if (!findOne) {
+            return res.json({ message: "Item not found" });
+        }
 
+        const result = await CategoriesModel.findByIdAndDelete(id);
+
+        // Check not found
         if (!result) {
             return res.json({ success: false, message: "Data not found" });
 
         } else {
+            if (findOne.attachment && findOne.attachment.public_id) {
+                await cloudinary.uploader.destroy(findOne.attachment.public_id);
+            }
+
             return res.json({
                 success: true,
                 message: 'Item Destroy Success',

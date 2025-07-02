@@ -11,7 +11,6 @@ import JWT from 'jsonwebtoken';
 import dotenv from 'dotenv';
 dotenv.config();
 
-
 export const register = async (req, res) => {
     try {
         const { first_name, last_name, country, phone, email, password, confirm_password, verify_token } = req.body;
