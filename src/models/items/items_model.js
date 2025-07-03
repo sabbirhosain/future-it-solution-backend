@@ -84,6 +84,10 @@ const ItemsSchema = new mongoose.Schema({
                 type: Boolean,
                 default: false
             },
+            isActive: {
+                type: Boolean,
+                default: true
+            },
             coupon_code: {
                 type: String,
                 trim: true,

@@ -1,36 +1,26 @@
 import mongoose from "mongoose";
 
 const CheckoutSchema = new mongoose.Schema({
-    isGuestUser: {
-        type: Boolean,
-        required: true,
-        default: false
-    },
-    isRegisterUser: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: function () { return !this.isGuestUser; } // Only required for registered users
-    },
-
     items: [{
         item_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Items',
             required: true
         },
-        item: {
-            type: Object,
+        item_name: {
+            type: String,
+            trim: true,
             default: null
         },
         package_id: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Packages',
+            ref: 'Items',
             required: true
         },
-        package: {
+        package_name: {
             type: Object,
             default: null
-        }
+        },
     }],
     subtotal: {
         type: Number,
