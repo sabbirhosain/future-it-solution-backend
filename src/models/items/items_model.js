@@ -59,11 +59,6 @@ const ItemsSchema = new mongoose.Schema({
                 enum: ['BDT', 'USD'],
                 default: 'BDT'
             },
-            currency_exchange_price: {
-                type: Number,
-                trim: true,
-                default: 0
-            },
             expired: {
                 type: Number,
                 trim: true,
@@ -99,14 +94,19 @@ const ItemsSchema = new mongoose.Schema({
     },
     reviews: {
         type: [{
-            user: {
-                type: Object,
-                required: true,
+            user_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Authentication',
+                required: true
+            },
+            user_name: {
+                type: String,
+                trim: true,
                 default: null
             },
-            review_date_and_time: {
-                type: Date,
-                default: Date.now()
+            date_and_time: {
+                type: String,
+                trim: true
             },
             rating: {
                 type: Number,

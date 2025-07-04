@@ -47,12 +47,12 @@ const CheckoutSchema = new mongoose.Schema({
     currency: {
         type: String,
         enum: ['BDT', 'USD'],
-        required: true
+        default: null
     },
     payment_method: {
         type: String,
         enum: ['credit_card', 'bkash', 'nagad', 'cash_on_delivery', 'rocket'],
-        required: true
+        default: null
     },
     payment_status: {
         type: String,
@@ -64,9 +64,18 @@ const CheckoutSchema = new mongoose.Schema({
         trim: true
     },
     billing_address: {
-        name: {
+        first_name: {
             type: String,
             required: true,
+            trim: true
+        },
+        last_name: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        full_name: {
+            type: String,
             trim: true
         },
         email: {
@@ -76,89 +85,26 @@ const CheckoutSchema = new mongoose.Schema({
         },
         phone: {
             type: String,
-            trim: true
-        },
-        address_line1: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        address_line2: {
-            type: String,
-            trim: true
-        },
-        city: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        state: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        postal_code: {
-            type: String,
             required: true,
             trim: true
         },
         country: {
             type: String,
-            required: true,
-            trim: true
-        }
-    },
-    shipping_address: {
-        name: {
-            type: String,
-            required: true,
-            trim: true
+            trim: true,
+            default: null
         },
-        email: {
+        address: {
             type: String,
-            required: true,
-            trim: true
+            trim: true,
+            default: null
         },
-        phone: {
+        message: {
             type: String,
-            trim: true
-        },
-        address_line1: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        address_line2: {
-            type: String,
-            trim: true
-        },
-        city: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        state: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        postal_code: {
-            type: String,
-            required: true,
-            trim: true
-        },
-        country: {
-            type: String,
-            required: true,
-            trim: true
+            trim: true,
+            default: null
         }
     },
     coupon_code: {
-        type: String,
-        trim: true,
-        default: null
-    },
-    notes: {
         type: String,
         trim: true,
         default: null

@@ -14,7 +14,7 @@ export const create = async (req, res) => {
         }
 
         // Check if phone or email already exists
-        const existingPhone = await CategoriesModel.findOne({ categories: categories });
+        const existingPhone = await CategoriesModel.findOne({ $or: [{ categories: { $regex: new RegExp(`^${categories.trim()}$`, 'i') } }] });
         if (existingPhone) { return res.json({ message: "Categories already exists." }) };
 
 

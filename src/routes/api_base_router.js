@@ -6,6 +6,7 @@ import * as Appointment from "../controllers/appointment_controller.js";
 import * as ContactForm from "../controllers/contact_form_controller.js";
 import * as OurTeams from "../controllers/our_teams_controller.js";
 import * as CheckOut from "../controllers/items/checkout_controller.js";
+import * as Review from "../controllers/items/reviews_controller.js";
 import { isAuthenticated, isLoggedOut } from "../middleware/auth_middleware.js";
 import upload from "../multer/multer.js";
 const router = express.Router();
@@ -32,15 +33,22 @@ router.get("/items/categories/:id", Categories.single)
 router.put("/items/categories/:id", upload.single("attachment"), Categories.update)
 router.delete("/items/categories/:id", Categories.destroy)
 
-// Private routes || premium tools
-router.post("/items/premium-tools", upload.single("attachment"), Items.create)
-router.get("/items/premium-tools", Items.show)
-router.get("/items/premium-tools/:id", Items.single)
-router.put("/items/premium-tools/:id", upload.single("attachment"), Items.update)
-router.delete("/items/premium-tools/:id", Items.destroy)
+// Private routes || premium product
+router.post("/items/premium/product", upload.single("attachment"), Items.create)
+router.get("/items/premium/product", Items.show)
+router.get("/items/premium/product/:id", Items.single)
+router.put("/items/premium/product/:id", upload.single("attachment"), Items.update)
+router.delete("/items/premium/product/:id", Items.destroy)
+
+// Private routes || product reviews
+router.post("/items/:item_id/reviews", Review.create);
+router.get("/items/:item_id/reviews", Review.show);
+router.patch("/items/:item_id/reviews/:review_id/status", Review.update);
+router.delete("/items/:item_id/reviews/:review_id", Review.destroy);
+router.post("/items/:item_id/reviews/:review_id/reply", Review.replyToReview);
 
 // Private routes || checkout
-router.post("/items/premium-tools/checkout", CheckOut.create)
+router.post("/items/premium/product/checkout", CheckOut.create)
 
 // Private routes || appointment meeting
 router.post("/appointment/schedule", isAuthenticated, Appointment.create)

@@ -53,56 +53,52 @@ export const create = async (req, res) => {
         // Validate each pricing tier
         const pricingErrors = [];
         packages.forEach((pack, index) => {
-            const tierErrors = [];
+            const packageError = [];
 
             if (!pack.package_name || typeof pack.package_name !== 'string' || pack.package_name.trim() === '') {
-                tierErrors.push('Package name is required and must be a non-empty string');
+                packageError.push('Package name is required and must be a non-empty string');
             }
 
             if (!pack.features || !Array.isArray(pack.features)) {
-                tierErrors.push('Features must be an array');
+                packageError.push('Features must be an array');
             }
 
             if (pack.quantity === undefined || pack.quantity === null || typeof pack.quantity !== 'number' || pack.quantity <= 0) {
-                tierErrors.push('Quantity is required and must be greater than 0');
+                packageError.push('Quantity is required and must be greater than 0');
             }
 
             if (pack.price === undefined || pack.price === null || typeof pack.price !== 'number' || pack.price <= 0) {
-                tierErrors.push('Price is required and must be greater than 0');
+                packageError.push('Price is required and must be greater than 0');
             }
 
             if (!pack.currency || !['BDT', 'USD'].includes(pack.currency)) {
-                tierErrors.push('Currency is required and must be either BDT or USD');
-            }
-
-            if (pack.currency_exchange_price === undefined || pack.currency_exchange_price === null || typeof pack.currency_exchange_price !== 'number' || pack.currency_exchange_price <= 0) {
-                tierErrors.push('Currency exchange is required and must be greater than 0');
+                packageError.push('Currency is required and must be either BDT or USD');
             }
 
             if (pack.expired !== undefined && pack.expired !== null &&
                 (typeof pack.expired !== 'number' || pack.expired <= 0)) {
-                tierErrors.push('If provided, expired must be a number greater than 0');
+                packageError.push('If provided, expired must be a number greater than 0');
             }
 
             if (pack.expired_type && !['Day', 'Month', 'Year'].includes(pack.expired_type)) {
-                tierErrors.push('Expired type must be Day, Month, or Year if provided');
+                packageError.push('Expired type must be Day, Month, or Year if provided');
             }
 
             if (pack.discount !== undefined && pack.discount !== null &&
                 (typeof pack.discount !== 'number' || pack.discount < 0 || pack.discount > 100)) {
-                tierErrors.push('Discount must be a number between 0 and 100');
+                packageError.push('Discount must be a number between 0 and 100');
             }
 
             if (pack.isRecommended !== undefined && typeof pack.isRecommended !== 'boolean') {
-                tierErrors.push('isRecommended must be a boolean value if provided');
+                packageError.push('isRecommended must be a boolean value if provided');
             }
 
             if (pack.coupon_code && !/^[A-Z0-9-]+$/.test(pack.coupon_code)) {
-                tierErrors.push('Coupon code can only contain letters, numbers, and hyphens');
+                packageError.push('Coupon code can only contain letters, numbers, and hyphens');
             }
 
-            if (tierErrors.length > 0) {
-                pricingErrors.push(`Package ${index + 1}: ${tierErrors.join(', ')}`);
+            if (packageError.length > 0) {
+                pricingErrors.push(`Package ${index + 1}: ${packageError.join(', ')}`);
             }
         });
 
@@ -325,51 +321,51 @@ export const update = async (req, res) => {
         // Validate each pricing tier
         const pricingErrors = [];
         pricing_tiers.forEach((pack, index) => {
-            const tierErrors = [];
+            const packageError = [];
 
             if (!pack.package_name || typeof pack.package_name !== 'string' || pack.package_name.trim() === '') {
-                tierErrors.push('Package name is required and must be a non-empty string');
+                packageError.push('Package name is required and must be a non-empty string');
             }
 
             if (!pack.features || !Array.isArray(pack.features)) {
-                tierErrors.push('Features must be an array');
+                packageError.push('Features must be an array');
             }
             if (pack.price === undefined || pack.price === null || typeof pack.price !== 'number' || pack.price <= 0) {
-                tierErrors.push('Price is required and must be greater than 0');
+                packageError.push('Price is required and must be greater than 0');
             }
 
             if (!pack.currency || !['BDT', 'USD'].includes(pack.currency)) {
-                tierErrors.push('Currency is required and must be either BDT or USD');
+                packageError.push('Currency is required and must be either BDT or USD');
             }
 
             if (pack.currency_exchange_price === undefined || pack.currency_exchange_price === null || typeof pack.currency_exchange_price !== 'number' || pack.currency_exchange_price <= 0) {
-                tierErrors.push('Currency exchange is required and must be greater than 0');
+                packageError.push('Currency exchange is required and must be greater than 0');
             }
 
             if (pack.expired !== undefined && pack.expired !== null &&
                 (typeof pack.expired !== 'number' || pack.expired <= 0)) {
-                tierErrors.push('If provided, expired must be a number greater than 0');
+                packageError.push('If provided, expired must be a number greater than 0');
             }
 
             if (pack.expired_type && !['Day', 'Month', 'Year'].includes(pack.expired_type)) {
-                tierErrors.push('Expired type must be Day, Month, or Year if provided');
+                packageError.push('Expired type must be Day, Month, or Year if provided');
             }
 
             if (pack.discount !== undefined && pack.discount !== null &&
                 (typeof pack.discount !== 'number' || pack.discount < 0 || pack.discount > 100)) {
-                tierErrors.push('Discount must be a number between 0 and 100');
+                packageError.push('Discount must be a number between 0 and 100');
             }
 
             if (pack.isRecommended !== undefined && typeof pack.isRecommended !== 'boolean') {
-                tierErrors.push('isRecommended must be a boolean value if provided');
+                packageError.push('isRecommended must be a boolean value if provided');
             }
 
             if (pack.coupon_code && !/^[A-Z0-9-]+$/.test(pack.coupon_code)) {
-                tierErrors.push('Coupon code can only contain letters, numbers, and hyphens');
+                packageError.push('Coupon code can only contain letters, numbers, and hyphens');
             }
 
-            if (tierErrors.length > 0) {
-                pricingErrors.push(`Package ${index + 1}: ${tierErrors.join(', ')}`);
+            if (packageError.length > 0) {
+                pricingErrors.push(`Package ${index + 1}: ${packageError.join(', ')}`);
             }
         });
 

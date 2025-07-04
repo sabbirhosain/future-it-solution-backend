@@ -4,7 +4,7 @@ import ItemsModel from "../../models/items/items_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { items, subtotal, total_discount, tax, shipping_cost, grand_total, currency, payment_method, payment_status, transaction_id, billing_address, shipping_address, coupon_code, notes, status } = req.body;
+        const { items, subtotal, total_discount, tax, shipping_cost, grand_total, currency, payment_method, payment_status, transaction_id, billing_address, shipping_address, coupon_code, status } = req.body;
 
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({
@@ -45,25 +45,18 @@ export const create = async (req, res) => {
             });
         }
 
-        // Validate monetary fields
-        const monetaryFields = ['subtotal', 'total_discount', 'tax', 'shipping_cost', 'grand_total'];
-        for (const field of monetaryFields) {
-            if (isNaN(req.body[field]) || req.body[field] < 0) {
-                return res.status(400).json({ [field]: 'must be a positive number' });
-            }
-        }
-
         // Validate payment method
-        const validPaymentMethods = ['credit_card', 'bkash', 'nagad', 'cash_on_delivery', 'rocket'];
-        if (!validPaymentMethods.includes(payment_method)) {
-            return res.json({ message: 'Invalid payment method' });
-        }
+        // const validPaymentMethods = ['credit_card', 'bkash', 'nagad', 'cash_on_delivery', 'rocket'];
+        // if (!validPaymentMethods.includes(payment_method)) {
+        //     return res.json({ message: 'Invalid payment method' });
+        // }
 
         // Validate billing address structure
-        const requiredAddressFields = ['name', 'email', 'address_line1', 'city', 'state', 'postal_code', 'country'];
-        const missingFields = requiredAddressFields.filter(field => !billing_address?.[field]);
-        if (missingFields.length > 0) {
-            return res.json({ message: 'Missing required billing address fields' });
+        const requiredAddressFields = ['first_name', 'last_name', 'email', 'phone'];
+        for (let field of requiredAddressFields) {
+            if (!billing_address?.[field]) {
+                return res.status(400).json({ [field]: 'is required (string)' });
+            }
         }
 
         // Verify grand total
@@ -78,20 +71,7 @@ export const create = async (req, res) => {
         // Save to DB
         const result = await new CheckoutModel({
             items: itemsWithNames,
-            subtotal: subtotal,
-            total_discount: total_discount,
-            tax: tax,
-            shipping_cost: shipping_cost,
-            grand_total: grand_total,
-            currency: currency,
-            payment_method: payment_method,
-            payment_status: payment_status,
-            transaction_id: transaction_id,
-            billing_address: billing_address,
-            shipping_address: shipping_address || billing_address,
-            coupon_code: coupon_code,
-            notes: notes,
-            status: status
+            billing_address: billing_address
         }).save();
 
         return res.json({
