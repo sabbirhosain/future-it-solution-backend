@@ -41,17 +41,13 @@ export const register = async (req, res) => {
             });
         }
 
-        // existing username, email, phone chack
-        const existing = await AuthModel.exists({
-            $or: [
-                { email: email.toLowerCase() },
-                { phone: phone }
-            ]
-        });
+        // check existing email
+        const existEmail = await AuthModel.exists({ $or: [{ email: { $regex: new RegExp(`^${email.trim()}$`, 'i') } }] });
+        if (existEmail) { return res.json({ success: false, message: "Email is already exists" }) }
 
-        if (existing) {
-            return res.json({ message: "The user is already registered, please login." });
-        }
+        // existing username, email, phone chack
+        const existPhone = await AuthModel.exists({ $or: [{ phone: { $regex: new RegExp(`^${phone.trim()}$`, 'i') } }] });
+        if (existPhone) { return res.json({ success: false, message: "Phone is already exists" }) }
 
         // Generate verification token
         const verifyToken = crypto.randomBytes(32).toString('hex');
@@ -96,15 +92,11 @@ export const register = async (req, res) => {
 export const verifyEmail = async (req, res) => {
     try {
         const { token, email } = req.query;
-
-        if (!token || !email) {
-            return res.json({ message: 'Invalid verification link' });
-        }
+        if (!token || !email) { return res.json({ message: 'Invalid verification link' }) }
 
         const response = await AuthModel.findOne({ email: email, verify_token: token });
-
         if (!response) {
-            return res.json({ message: 'Verification failed. Invalid token or email.' });
+            return res.json({ message: 'Verification failed. Invalid token or email.' })
         } else {
             response.isVerified = true;
             response.verify_token = null;
@@ -133,9 +125,7 @@ export const verifyManually = async (req, res) => {
 
         // check exist data
         const findOne = await AuthModel.findById(id);
-        if (!findOne) {
-            return res.json({ message: "Item not found" });
-        }
+        if (!findOne) { return res.json({ message: "Item not found" }) }
 
         // update
         const result = await AuthModel.findByIdAndUpdate(id, {
@@ -168,49 +158,34 @@ export const login = async (req, res) => {
         // Find by existing username, email, phone
         const existing = await AuthModel.findOne({
             $or: [
-                { user_name: user },
-                { email: user },
-                { phone: user }
+                { user_name: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
+                { email: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
+                { phone: { $regex: new RegExp(`^${user.trim()}$`, 'i') } }
             ]
         });
 
         if (!existing) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid credentials. Please register."
-            });
+            return res.json({ success: false, message: "Invalid credentials. Please register." });
         }
 
-        // Reject admins
+        // Reject admin
         if (existing.isAdmin) {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied. Only user accounts can log in here."
-            });
+            return res.json({ success: false, message: "Access denied. Only user accounts can log in here." });
         }
 
         // Check if email is verified
         if (!existing.isVerified) {
-            return res.status(403).json({
-                success: false,
-                message: "Please verify your email before logging in."
-            });
+            return res.json({ success: false, message: "Please verify your email before logging in." });
         }
 
         if (existing.status === 'hold') {
-            return res.status(403).json({
-                success: false,
-                message: "Account is on hold. Please contact support."
-            });
+            return res.json({ success: false, message: "Account is on hold. Please contact support." });
         }
 
         // Check password match
         const passwordMatch = await bcrypt.compare(password, existing.password);
         if (!passwordMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials. Please try again.'
-            });
+            return res.json({ success: false, message: 'Invalid credentials. Please try again.' });
         }
 
         const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
@@ -241,8 +216,7 @@ export const login = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        return res.json({
             success: false,
             error: error.message || 'Internal Server Error'
         });
@@ -258,50 +232,33 @@ export const adminLogin = async (req, res) => {
         // Find by existing username, email, phone
         const existing = await AuthModel.findOne({
             $or: [
-                { user_name: user },
-                { email: user },
-                { phone: user }
+                { user_name: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
+                { email: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
+                { phone: { $regex: new RegExp(`^${user.trim()}$`, 'i') } }
             ]
         });
 
         if (!existing) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid credentials"
-            });
+            return res.json({ success: false, message: "Invalid credentials" });
         }
 
-        // Only difference from regular login - checks isAdmi
+        // Only difference from regular login - checks isAdmin
         if (!existing.isAdmin) {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied. Only admin can log in."
-            });
+            return res.json({ success: false, message: "Access denied. Only admin can log in." });
         }
 
         // Check if email is verified
         if (!existing.isVerified) {
-            return res.status(403).json({
-                success: false,
-                message: "Please verify your email before logging in."
-            });
+            return res.json({ success: false, message: "Please verify your email before logging in." });
         }
 
         if (existing.status === 'hold') {
-            return res.status(403).json({
-                success: false,
-                message: "Account is on hold. Please contact support."
-            });
+            return res.json({ success: false, message: "Account is on hold. Please contact support." });
         }
 
         // Check password match
         const passwordMatch = await bcrypt.compare(password, existing.password);
-        if (!passwordMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid credentials'
-            });
-        }
+        if (!passwordMatch) { return res.json({ success: false, message: 'Invalid credentials' }) }
 
         const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
         const refreshToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, '7d');
@@ -331,8 +288,7 @@ export const adminLogin = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({
+        return res.json({
             success: false,
             error: error.message || 'Internal Server Error'
         });
@@ -464,9 +420,7 @@ export const update = async (req, res) => {
 
         // check exist data
         const findOne = await AuthModel.findById(id);
-        if (!findOne) {
-            return res.json({ message: "Item not found" });
-        }
+        if (!findOne) { return res.json({ message: "Item not found" }) }
 
         const requiredFields = ['first_name', 'last_name', 'country'];
         for (let field of requiredFields) {
@@ -538,9 +492,7 @@ export const destroy = async (req, res) => {
 
         // check exist data
         const findOne = await AuthModel.findById(id);
-        if (!findOne) {
-            return res.json({ message: "Item not found" });
-        }
+        if (!findOne) { return res.json({ message: "Item not found" }) }
 
         const result = await AuthModel.findByIdAndDelete(id);
 
@@ -652,78 +604,97 @@ export const logout = async (req, res) => {
 
 export const passwordChange = async (req, res) => {
     try {
-        const { currentPassword, newPassword, confirmNewPassword } = req.body;
-        const userId = req.user._id; // Assuming user ID is attached from auth middleware
+        const { user_id, currentPassword, newPassword, confirmNewPassword } = req.body;
 
-        // Validate inputs
-        if (!currentPassword || !newPassword || !confirmNewPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'All fields are required'
-            });
+        // Validate required fields
+        const requiredFields = ['user_id', 'currentPassword', 'newPassword', 'confirmNewPassword'];
+        for (let field of requiredFields) {
+            if (!req.body[field]) { return res.json({ [field]: 'Field is required' }) }
         }
 
+        // Check if new passwords match
         if (newPassword !== confirmNewPassword) {
-            return res.status(400).json({
-                success: false,
-                message: 'New passwords do not match'
-            });
+            return res.json({ success: false, message: 'New passwords do not match' });
         }
 
-        if (newPassword.length < 8) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password must be at least 8 characters long'
-            });
+        // Password validation
+        if (newPassword.length < 6) {
+            return res.json({ success: false, message: 'Password must be at least 6 characters long' });
+        }
+
+        // Additional password complexity checks (optional)
+        if (!/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+            return res.json({ success: false, message: 'Password must contain at least one uppercase letter and one number' });
         }
 
         // Find user
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
+        const existUser = await AuthModel.findById(user_id);
+        if (!existUser) { return res.json({ success: false, message: 'User not found' }) }
 
         // Verify current password
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: 'Current password is incorrect'
+        const isMatch = await bcrypt.compare(currentPassword, existUser.password);
+        if (!isMatch) { return res.json({ success: false, message: 'Current password is incorrect' }) }
+
+        // Check if new password is different from current
+        const isSamePassword = await bcrypt.compare(newPassword, existUser.password);
+        if (isSamePassword) { return res.json({ success: false, message: 'New password must be different from current password' }) }
+
+        // Hash and update password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        existUser.password = hashedPassword;
+
+        const result = await existUser.save();
+
+        if (result) {
+            return res.json({
+                success: true,
+                message: 'Password changed successfully'
             });
         }
 
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-        // Update password
-        user.password = hashedPassword;
-        await user.save();
-
-        return res.status(200).json({
-            success: true,
-            message: 'Password changed successfully'
-        });
-
     } catch (error) {
-        console.error('Password change error:', error);
-        return res.status(500).json({
+        return res.json({
             success: false,
-            message: error.message || 'Internal server error'
+            error: error.message || 'Internal Server Error'
         });
     }
 };
 
 export const forgetPassword = async (req, res) => {
     try {
+        const { email } = req.body;
+        if (!email) { return res.json({ success: false, message: 'Email is required' }) }
+
+        const existEmail = await AuthModel.findOne({ email });
+        if (!existEmail) { return res.json({ success: false, message: 'User not found' }) }
+
+        // Generate reset token and set expiry (1 hour from now)
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = Date.now() + 3600000; // 1 hour in milliseconds
+
+        // Save token to database
+        existEmail.resetToken = resetToken;
+        existEmail.resetTokenExpiry = resetTokenExpiry;
+        const result = await existEmail.save();
+        if (result) {
+            await sendEmail({
+                to: result.email,
+                subject: 'Password Reset Instructions',
+                first_name: result.first_name,
+                verify_link: `${process.env.FRONTEND_BASE_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
+            });
+            return res.json({
+                success: true,
+                message: 'Password reset link sent to your email'
+            });
+        }
 
     } catch (error) {
-        return res.json({
+        console.error('Password reset error:', error);
+        return res.status(500).json({
             success: false,
-            error: error.message || 'Internal Server Error'
+            error: 'Internal Server Error'
         });
     }
 }

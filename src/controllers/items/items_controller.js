@@ -43,7 +43,7 @@ export const create = async (req, res) => {
             });
         }
 
-        // Validate pricing_tiers structure
+        // Validate packages structure
         if (!Array.isArray(packages) || packages.length === 0) {
             return res.status(400).json({
                 packages: 'At least one pricing tier is required'
@@ -93,8 +93,11 @@ export const create = async (req, res) => {
                 packageError.push('isRecommended must be a boolean value if provided');
             }
 
-            if (pack.coupon_code && !/^[A-Z0-9-]+$/.test(pack.coupon_code)) {
-                packageError.push('Coupon code can only contain letters, numbers, and hyphens');
+            // Calculate grand_total if no errors
+            if (!packageError.length) {
+                const discountAmount = (pack.price * (pack.discount || 0)) / 100;
+                pack.grand_total = pack.price - discountAmount;
+                pack.grand_total = Math.max(0, pack.grand_total); // Ensure grand_total is never negative
             }
 
             if (packageError.length > 0) {
@@ -167,9 +170,7 @@ export const show = async (req, res) => {
 
         // Add search filter
         const dataFilter = {
-            $or: [
-                { item_name: { $regex: searchQuery } }
-            ],
+            $or: [{ item_name: { $regex: searchQuery } }],
         };
 
         // Category filter (if provided)
@@ -271,9 +272,7 @@ export const update = async (req, res) => {
 
         // check exist data
         const findOne = await ItemsModel.findById(id);
-        if (!findOne) {
-            return res.json({ message: "Item not found" });
-        }
+        if (!findOne) { return res.json({ success: false, message: "Item not found" }) }
 
         const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description'];
         for (let field of requiredFields) {
@@ -283,17 +282,19 @@ export const update = async (req, res) => {
             }
         }
 
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(categories_id)) {
+            return res.json({ success: false, message: "Invalid Categories ID format" });
+        }
+
+        const findCategory = await CategoriesModel.findById(categories_id);
+        if (!findCategory) { return res.json({ success: false, message: "category not found" }) }
+
         // existing tools name chack
         const existing = await ItemsModel.findOne({ item_name: item_name });
         if (existing && existing._id.toString() !== id) {
             return res.status(400).json({ item_name: 'already exists. try another' });
         }
-
-        const findCategory = await CategoriesModel.findById(categories_id);
-        if (!findCategory) {
-            return res.json({ message: "category not found" });
-        }
-
 
         // Validate short_description character count (max 100 characters)
         if (short_description.length > 100) {
@@ -311,7 +312,7 @@ export const update = async (req, res) => {
             });
         }
 
-        // Validate pricing_tiers structure
+        // Validate packages structure
         if (!Array.isArray(packages) || packages.length === 0) {
             return res.status(400).json({
                 packages: 'At least one pricing tier is required'
@@ -320,7 +321,7 @@ export const update = async (req, res) => {
 
         // Validate each pricing tier
         const pricingErrors = [];
-        pricing_tiers.forEach((pack, index) => {
+        packages.forEach((pack, index) => {
             const packageError = [];
 
             if (!pack.package_name || typeof pack.package_name !== 'string' || pack.package_name.trim() === '') {
@@ -336,10 +337,6 @@ export const update = async (req, res) => {
 
             if (!pack.currency || !['BDT', 'USD'].includes(pack.currency)) {
                 packageError.push('Currency is required and must be either BDT or USD');
-            }
-
-            if (pack.currency_exchange_price === undefined || pack.currency_exchange_price === null || typeof pack.currency_exchange_price !== 'number' || pack.currency_exchange_price <= 0) {
-                packageError.push('Currency exchange is required and must be greater than 0');
             }
 
             if (pack.expired !== undefined && pack.expired !== null &&
@@ -360,8 +357,11 @@ export const update = async (req, res) => {
                 packageError.push('isRecommended must be a boolean value if provided');
             }
 
-            if (pack.coupon_code && !/^[A-Z0-9-]+$/.test(pack.coupon_code)) {
-                packageError.push('Coupon code can only contain letters, numbers, and hyphens');
+            // Calculate grand_total if no errors
+            if (!packageError.length) {
+                const discountAmount = (pack.price * (pack.discount || 0)) / 100;
+                pack.grand_total = pack.price - discountAmount;
+                pack.grand_total = Math.max(0, pack.grand_total);
             }
 
             if (packageError.length > 0) {
@@ -401,13 +401,14 @@ export const update = async (req, res) => {
         const result = await ItemsModel.findByIdAndUpdate(id, {
             item_name: item_name,
             categories_id: categories_id,
-            categories: findCategory,
+            categories: findCategory.categories,
             short_description: short_description,
             long_description: long_description,
             features: features,
+            packages: packages,
+            notes: notes,
             status: status,
             availability: availability,
-            notes: notes,
             attachment: attachment
         }, { new: true })
 

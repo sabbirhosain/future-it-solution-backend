@@ -45,13 +45,13 @@ const ItemsSchema = new mongoose.Schema({
             },
             quantity: {
                 type: Number,
-                required: true,
-                min: 1,
+                trim: true,
+                default: 1
             },
             price: {
                 type: Number,
-                required: true,
-                min: 0,
+                trim: true,
+                default: 0
             },
             currency: {
                 type: String,
@@ -72,7 +72,12 @@ const ItemsSchema = new mongoose.Schema({
             },
             discount: {
                 type: Number,
-                min: 0,
+                trim: true,
+                default: 0
+            },
+            grand_total: {
+                type: Number,
+                trim: true,
                 default: 0
             },
             isRecommended: {
@@ -82,13 +87,6 @@ const ItemsSchema = new mongoose.Schema({
             isActive: {
                 type: Boolean,
                 default: true
-            },
-            coupon_code: {
-                type: String,
-                trim: true,
-                uppercase: true,
-                match: [/^[A-Z0-9-]+$/, "Coupon code can only contain letters, numbers, and hyphens"],
-                default: null
             }
         }]
     },
