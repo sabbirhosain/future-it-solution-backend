@@ -65,7 +65,6 @@ export const register = async (req, res) => {
             verify_token: verifyToken
         }).save();
 
-
         if (result) {
             await sendEmail({
                 to: result.email,
