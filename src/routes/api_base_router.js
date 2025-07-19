@@ -49,7 +49,7 @@ router.delete("/items/:item_id/reviews/:review_id", Review.destroy);
 router.post("/items/:item_id/reviews/:review_id/reply", Review.replyToReview);
 
 // Private routes || checkout
-router.post("/items/premium/product/checkout", CheckOut.create)
+router.post("/items/product/checkout", CheckOut.create)
 
 // Private routes || appointment meeting
 router.post("/appointment/schedule", isAuthenticated, Appointment.create)

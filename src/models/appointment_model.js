@@ -23,11 +23,6 @@ const AppointmentSchema = new mongoose.Schema({
         default: Date.now()
     },
 
-    meeting_date_formated: {
-        type: String,
-        trim: true
-    },
-
     meeting_time: {
         type: String,
         required: true,

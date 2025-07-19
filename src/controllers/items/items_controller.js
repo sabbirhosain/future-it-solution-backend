@@ -6,12 +6,10 @@ import CategoriesModel from "../../models/items/categories_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { item_name, categories_id, categories, packages, short_description, long_description, features, notes, status, availability } = req.body;
+        const { item_name, categories_id, categories, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, total_price, notes } = req.body;
         const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description'];
         for (let field of requiredFields) {
-            if (!req.body[field]) {
-                return res.status(400).json({ [field]: 'Field is required (string)' });
-            }
+            if (!req.body[field]) { return res.json({ [field]: 'Field is required (string)' }) }
         }
 
         // Validate category exists
@@ -27,91 +25,42 @@ export const create = async (req, res) => {
         const existing = await ItemsModel.exists({ $or: [{ item_name: { $regex: new RegExp(`^${item_name.trim()}$`, 'i') } }] })
         if (existing) { return res.json({ success: false, message: "Item name already exists" }) }
 
-        // Validate short_description character count (max 100 characters)
+        // Validate feilds
         if (short_description.length > 100) {
-            return res.json({
-                success: false,
-                message: 'Short description must be 100 characters or less'
-            });
+            return res.json({ short_description: 'Short description must be 100 characters or less' });
         }
 
-        // Validate additional_feature are arrays
-        if (features && !Array.isArray(features)) {
-            return res.json({
-                success: false,
-                message: 'Additional features must be provided as an array'
-            });
+        if (features && (!Array.isArray(features) || features.some(feature => typeof feature !== 'string'))) {
+            return res.json({ features: 'must be an array of strings' });
         }
 
-        // Validate packages structure
-        if (!Array.isArray(packages) || packages.length === 0) {
-            return res.status(400).json({
-                packages: 'At least one pricing tier is required'
-            });
+        if (!package_name || typeof package_name !== 'string' || package_name.trim() === '') {
+            return res.json({ package_name: 'is required and must be a non-empty string' });
         }
 
-        // Validate each pricing tier
-        const pricingErrors = [];
-        packages.forEach((pack, index) => {
-            const packageError = [];
-
-            if (!pack.package_name || typeof pack.package_name !== 'string' || pack.package_name.trim() === '') {
-                packageError.push('Package name is required and must be a non-empty string');
-            }
-
-            if (!pack.features || !Array.isArray(pack.features)) {
-                packageError.push('Features must be an array');
-            }
-
-            if (pack.quantity === undefined || pack.quantity === null || typeof pack.quantity !== 'number' || pack.quantity <= 0) {
-                packageError.push('Quantity is required and must be greater than 0');
-            }
-
-            if (pack.price === undefined || pack.price === null || typeof pack.price !== 'number' || pack.price <= 0) {
-                packageError.push('Price is required and must be greater than 0');
-            }
-
-            if (!pack.currency || !['BDT', 'USD'].includes(pack.currency)) {
-                packageError.push('Currency is required and must be either BDT or USD');
-            }
-
-            if (pack.expired !== undefined && pack.expired !== null &&
-                (typeof pack.expired !== 'number' || pack.expired <= 0)) {
-                packageError.push('If provided, expired must be a number greater than 0');
-            }
-
-            if (pack.expired_type && !['Day', 'Month', 'Year'].includes(pack.expired_type)) {
-                packageError.push('Expired type must be Day, Month, or Year if provided');
-            }
-
-            if (pack.discount !== undefined && pack.discount !== null &&
-                (typeof pack.discount !== 'number' || pack.discount < 0 || pack.discount > 100)) {
-                packageError.push('Discount must be a number between 0 and 100');
-            }
-
-            if (pack.isRecommended !== undefined && typeof pack.isRecommended !== 'boolean') {
-                packageError.push('isRecommended must be a boolean value if provided');
-            }
-
-            // Calculate grand_total if no errors
-            if (!packageError.length) {
-                const discountAmount = (pack.price * (pack.discount || 0)) / 100;
-                pack.grand_total = pack.price - discountAmount;
-                pack.grand_total = Math.max(0, pack.grand_total); // Ensure grand_total is never negative
-            }
-
-            if (packageError.length > 0) {
-                pricingErrors.push(`Package ${index + 1}: ${packageError.join(', ')}`);
-            }
-        });
-
-        if (pricingErrors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Pricing validation failed',
-                details: pricingErrors
-            });
+        if (price === undefined || price === null || typeof price !== 'number' || price <= 0) {
+            return res.json({ price: 'is required and must be greater than 0' });
         }
+
+        if (!currency || !['BDT', 'USD'].includes(currency)) {
+            return res.json({ currency: 'is required and must be either BDT or USD' });
+        }
+
+        if (expired !== undefined && expired !== null && (typeof expired !== 'number' || expired <= 0)) {
+            return res.json({ expired: 'is must be a number greater than 0' });
+        }
+
+        if (expired_type && !['Day', 'Month', 'Year'].includes(expired_type)) {
+            return res.json({ expired_type: 'is must be Day, Month, or Year' });
+        }
+
+        if (discount !== undefined && discount !== null && (typeof discount !== 'number' || discount < 0 || discount > 100)) {
+            return res.json({ discount: 'is must be number between 0 and 100' });
+        }
+
+        // Calculate grand_total if no errors
+        const discountAmount = (price * (discount || 0)) / 100;
+        const total = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
 
         // File upload handling
         let attachment = null;
@@ -137,10 +86,15 @@ export const create = async (req, res) => {
             short_description: short_description,
             long_description: long_description,
             features: features,
-            packages: packages,
+            package_name: package_name,
+            quantity: quantity,
+            price: price,
+            currency: currency,
+            expired: expired,
+            expired_type: expired_type,
+            discount: discount,
+            total_price: total,
             notes: notes,
-            status: status,
-            availability: availability,
             attachment: attachment
         }).save();
 
@@ -165,7 +119,7 @@ export const show = async (req, res) => {
         const search = req.query.search || "";
         const { categories, status, availability } = req.query;
         const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 8;
+        const limit = Number(req.query.limit) || 20;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
 
         // Add search filter
@@ -263,7 +217,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { item_name, categories_id, categories, packages, short_description, long_description, features, notes, status, availability } = req.body;
+        const { item_name, categories_id, categories, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, total_price, notes, status, availability } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -293,89 +247,54 @@ export const update = async (req, res) => {
         // existing tools name chack
         const existing = await ItemsModel.findOne({ item_name: item_name });
         if (existing && existing._id.toString() !== id) {
-            return res.status(400).json({ item_name: 'already exists. try another' });
+            return res.json({ item_name: 'already exists. try another' });
         }
 
-        // Validate short_description character count (max 100 characters)
+        // Validate feilds
         if (short_description.length > 100) {
-            return res.status(400).json({
-                success: false,
-                message: 'Short description must be 100 characters or less'
-            });
+            return res.json({ short_description: 'Short description must be 100 characters or less' });
         }
 
-        // Validate additional_feature are arrays
-        if (features && !Array.isArray(features)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Additional features must be provided as an array'
-            });
+        if (features && (!Array.isArray(features) || features.some(feature => typeof feature !== 'string'))) {
+            return res.json({ features: 'must be an array of strings' });
         }
 
-        // Validate packages structure
-        if (!Array.isArray(packages) || packages.length === 0) {
-            return res.status(400).json({
-                packages: 'At least one pricing tier is required'
-            });
+        if (!package_name || typeof package_name !== 'string' || package_name.trim() === '') {
+            return res.json({ package_name: 'is required and must be a non-empty string' });
         }
 
-        // Validate each pricing tier
-        const pricingErrors = [];
-        packages.forEach((pack, index) => {
-            const packageError = [];
-
-            if (!pack.package_name || typeof pack.package_name !== 'string' || pack.package_name.trim() === '') {
-                packageError.push('Package name is required and must be a non-empty string');
-            }
-
-            if (!pack.features || !Array.isArray(pack.features)) {
-                packageError.push('Features must be an array');
-            }
-            if (pack.price === undefined || pack.price === null || typeof pack.price !== 'number' || pack.price <= 0) {
-                packageError.push('Price is required and must be greater than 0');
-            }
-
-            if (!pack.currency || !['BDT', 'USD'].includes(pack.currency)) {
-                packageError.push('Currency is required and must be either BDT or USD');
-            }
-
-            if (pack.expired !== undefined && pack.expired !== null &&
-                (typeof pack.expired !== 'number' || pack.expired <= 0)) {
-                packageError.push('If provided, expired must be a number greater than 0');
-            }
-
-            if (pack.expired_type && !['Day', 'Month', 'Year'].includes(pack.expired_type)) {
-                packageError.push('Expired type must be Day, Month, or Year if provided');
-            }
-
-            if (pack.discount !== undefined && pack.discount !== null &&
-                (typeof pack.discount !== 'number' || pack.discount < 0 || pack.discount > 100)) {
-                packageError.push('Discount must be a number between 0 and 100');
-            }
-
-            if (pack.isRecommended !== undefined && typeof pack.isRecommended !== 'boolean') {
-                packageError.push('isRecommended must be a boolean value if provided');
-            }
-
-            // Calculate grand_total if no errors
-            if (!packageError.length) {
-                const discountAmount = (pack.price * (pack.discount || 0)) / 100;
-                pack.grand_total = pack.price - discountAmount;
-                pack.grand_total = Math.max(0, pack.grand_total);
-            }
-
-            if (packageError.length > 0) {
-                pricingErrors.push(`Package ${index + 1}: ${packageError.join(', ')}`);
-            }
-        });
-
-        if (pricingErrors.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Pricing validation failed',
-                details: pricingErrors
-            });
+        if (price === undefined || price === null || typeof price !== 'number' || price <= 0) {
+            return res.json({ price: 'is required and must be greater than 0' });
         }
+
+        if (!currency || !['BDT', 'USD'].includes(currency)) {
+            return res.json({ currency: 'is required and must be either BDT or USD' });
+        }
+
+        if (expired !== undefined && expired !== null && (typeof expired !== 'number' || expired <= 0)) {
+            return res.json({ expired: 'is must be a number greater than 0' });
+        }
+
+        if (expired_type && !['Day', 'Month', 'Year'].includes(expired_type)) {
+            return res.json({ expired_type: 'is must be Day, Month, or Year' });
+        }
+
+        if (discount !== undefined && discount !== null && (typeof discount !== 'number' || discount < 0 || discount > 100)) {
+            return res.json({ discount: 'is must be number between 0 and 100' });
+        }
+
+        if (status && !['show', 'hide'].includes(status)) {
+            return res.json({ status: 'must be either show or hide' });
+        }
+
+        if (availability && !['available', 'unavailable'].includes(availability)) {
+            return res.json({ availability: 'must be either available or unavailable' });
+        }
+
+        // Calculate grand_total if no errors
+        const discountAmount = (price * (discount || 0)) / 100;
+        const total = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
+
 
         // file upload
         let attachment = findOne.attachment;
@@ -405,7 +324,14 @@ export const update = async (req, res) => {
             short_description: short_description,
             long_description: long_description,
             features: features,
-            packages: packages,
+            package_name: package_name,
+            quantity: quantity,
+            price: price,
+            currency: currency,
+            expired: expired,
+            expired_type: expired_type,
+            discount: discount,
+            total_price: total,
             notes: notes,
             status: status,
             availability: availability,

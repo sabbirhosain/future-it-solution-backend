@@ -1,42 +1,34 @@
 import mongoose from "mongoose";
 
 const CheckoutSchema = new mongoose.Schema({
-    items: [{
-        item_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Items',
-            required: true
-        },
-        item_name: {
-            type: String,
-            trim: true,
-            default: null
-        },
-        package_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Items',
-            required: true
-        },
-        package_name: {
-            type: Object,
-            default: null
-        },
-    }],
-    subtotal: {
+    date_and_time: {
+        type: String,
+        trim: true
+    },
+    item_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Items',
+        required: true
+    },
+    items: {
+        item_name: { type: String },
+        categories: { type: String },
+        package_name: { type: String },
+        quantity: { type: Number },
+        price: { type: Number },
+        currency: { type: String, },
+        expired: { type: Number },
+        expired_type: { type: String },
+        discount: { type: Number },
+    },
+    send_or_cashout_fee: {
         type: Number,
-        required: true,
+        trim: true,
         default: 0
     },
-    total_discount: {
+    sub_total: {
         type: Number,
-        default: 0
-    },
-    tax: {
-        type: Number,
-        default: 0
-    },
-    shipping_cost: {
-        type: Number,
+        trim: true,
         default: 0
     },
     grand_total: {
@@ -44,24 +36,27 @@ const CheckoutSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
-    currency: {
-        type: String,
-        enum: ['BDT', 'USD'],
-        default: null
-    },
     payment_method: {
         type: String,
-        enum: ['credit_card', 'bkash', 'nagad', 'cash_on_delivery', 'rocket'],
+        enum: ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank'],
         default: null
     },
-    payment_status: {
+    active_date_and_time: {
+        type: Date,
+        default: null
+    },
+    expire_date_and_time: {
+        type: Date,
+        default: null
+    },
+    status: {
         type: String,
-        enum: ['pending', 'processing', 'completed', 'failed', 'refunded', 'partially_refunded'],
+        enum: ['pending', 'completed', 'cancelled', 'returned'],
         default: 'pending'
     },
-    transaction_id: {
-        type: String,
-        trim: true
+    attachment: {
+        type: Object,
+        default: null
     },
     billing_address: {
         first_name: {
@@ -103,16 +98,6 @@ const CheckoutSchema = new mongoose.Schema({
             trim: true,
             default: null
         }
-    },
-    coupon_code: {
-        type: String,
-        trim: true,
-        default: null
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
-        default: 'pending'
     }
 }, { timestamps: true });
 

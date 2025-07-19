@@ -4,63 +4,43 @@ import ItemsModel from "../../models/items/items_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { items, subtotal, total_discount, tax, shipping_cost, grand_total, currency, payment_method, payment_status, transaction_id, billing_address, shipping_address, coupon_code, status } = req.body;
+        const { date_and_time, item_id, items, send_or_cashout_fee, sub_total, grand_total, payment_method, billing_address, status } = req.body;
 
-        if (!Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({
-                items: 'At least one Items is required'
-            });
+        const requiredFields = ['item_id'];
+        for (let field of requiredFields) {
+            if (!req.body[field]) { return res.json({ [field]: 'Field is required (string)' }) }
         }
 
-        const itemsWithNames = [];
-        for (const item of items) {
-            if (!item.item_id || !item.package_id) {
-                return res.json({ message: 'Each item must have item_id, package_id' });
-            }
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(item_id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
 
-            // Validate items are exist
-            if (!mongoose.Types.ObjectId.isValid(item.item_id)) {
-                return res.json({ message: "Invalid ID format" })
-            }
-            const findByItem = await ItemsModel.findById(item.item_id);
-            if (!findByItem) { return res.json({ message: 'Item ID Not Found.' }) }
+        // check exist data
+        const findItem = await ItemsModel.findById(item_id);
+        if (!findItem) { return res.json({ success: false, message: "Item not found" }) }
 
-            // Validate packages are exist
-            if (!mongoose.Types.ObjectId.isValid(item.package_id)) {
-                return res.json({ message: "Invalid Package ID format" })
-            }
-
-            // Validate package exists for this item
-            const findByPackage = findByItem.packages.find(pkg => pkg._id.toString() === item.package_id);
-            if (!findByPackage) { return res.json({ message: 'Package Not Found.' }) }
-
-            // Validate package is active
-            if (!findByPackage.isActive) { return res.json({ message: 'Package is not currently available' }) }
-
-            itemsWithNames.push({
-                item_id: item.item_id,
-                item_name: findByItem.item_name,
-                package_id: item.package_id,
-                package_name: findByPackage
-            });
+        // Check availability
+        if (findItem.availability !== "available") {
+            return res.json({ success: false, message: "Item is not available for purchase" });
         }
 
         // Validate payment method
-        // const validPaymentMethods = ['credit_card', 'bkash', 'nagad', 'cash_on_delivery', 'rocket'];
-        // if (!validPaymentMethods.includes(payment_method)) {
-        //     return res.json({ message: 'Invalid payment method' });
-        // }
+        const selectPaymentMethods = ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank'];
+        if (!selectPaymentMethods.includes(payment_method)) {
+            return res.json({ payment_method: 'Field is required. Use [ credit_card, mobile_bank, cash_on_delivery and bank ]' });
+        }
 
         // Validate billing address structure
-        const requiredAddressFields = ['first_name', 'last_name', 'email', 'phone'];
-        for (let field of requiredAddressFields) {
+        const billingAddress = ['first_name', 'last_name', 'email', 'phone', 'country', 'address'];
+        for (let field of billingAddress) {
             if (!billing_address?.[field]) {
-                return res.status(400).json({ [field]: 'is required (string)' });
+                return res.json({ [field]: 'is required (string)' });
             }
         }
 
         // Verify grand total
-        const calculatedTotal = subtotal - total_discount + tax + shipping_cost;
+        const calculatedTotal = findItem.total_price + (sub_total || 0) + (send_or_cashout_fee || 0);
         if (Math.abs(calculatedTotal - grand_total) > 0.01) {
             return res.status(400).json({
                 status: "error",
@@ -70,13 +50,30 @@ export const create = async (req, res) => {
 
         // Save to DB
         const result = await new CheckoutModel({
-            items: itemsWithNames,
+            date_and_time: date_and_time,
+            item_id: item_id,
+            items: {
+                item_name: findItem.item_name,
+                categories: findItem.categories,
+                package_name: findItem.package_name,
+                quantity: findItem.quantity,
+                price: findItem.price,
+                currency: findItem.currency,
+                expired: findItem.expired,
+                expired_type: findItem.expired_type,
+                discount: findItem.discount,
+            },
+            send_or_cashout_fee: send_or_cashout_fee,
+            sub_total: findItem.total_price,
+            grand_total: calculatedTotal,
+            payment_method: payment_method,
+            status: status,
             billing_address: billing_address
         }).save();
 
         return res.json({
             success: true,
-            message: 'Order Created Success',
+            message: 'Order Success',
             payload: result
         });
 

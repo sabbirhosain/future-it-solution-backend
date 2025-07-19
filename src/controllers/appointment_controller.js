@@ -30,7 +30,6 @@ export const create = async (req, res) => {
         // store the value
         const result = await new AppointmentModel({
             user: req.auth,
-            date_and_time_formated: formatDateTime(Date.now()),
             meeting_date: new Date(meeting_date),
             meeting_date_formated: formatDateOnly(new Date(meeting_date)),
             meeting_time: meeting_time,
@@ -213,7 +212,6 @@ export const update = async (req, res) => {
 
         // update
         const result = await AppointmentModel.findByIdAndUpdate(id, {
-            date_and_time_formated: formatDateTime(Date.now()),
             appointment_by: decoded.existing,
             meeting_date: new Date(meeting_date),
             meeting_time: meeting_time,
