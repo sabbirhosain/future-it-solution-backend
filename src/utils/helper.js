@@ -40,3 +40,31 @@ export const formatDateOnly = (input) => {
 
     return `${day}-${month}-${year}`;
 }
+
+// Helper function to calculate time difference in human-readable format
+export const calculateTimeDifference = (startDate, endDate) => {
+    const diffInMs = new Date(endDate) - new Date(startDate);
+    const diffInSeconds = Math.floor(diffInMs / 1000);
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+
+    if (diffInYears > 0) {
+        return `${diffInYears} Year${diffInYears > 1 ? 's' : ''}`;
+    }
+    if (diffInMonths > 0) {
+        return `${diffInMonths} Month${diffInMonths > 1 ? 's' : ''}`;
+    }
+    if (diffInDays > 0) {
+        return `${diffInDays} Day${diffInDays > 1 ? 's' : ''}`;
+    }
+    if (diffInHours > 0) {
+        return `${diffInHours} Hour${diffInHours > 1 ? 's' : ''}`;
+    }
+    if (diffInMinutes > 0) {
+        return `${diffInMinutes} Minute${diffInMinutes > 1 ? 's' : ''}`;
+    }
+    return `${diffInSeconds} Second${diffInSeconds !== 1 ? 's' : ''}`;
+};

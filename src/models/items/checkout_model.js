@@ -45,9 +45,17 @@ const CheckoutSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    active_date_and_time_formated: {
+        type: String,
+        trim: true
+    },
     expire_date_and_time: {
         type: Date,
         default: null
+    },
+    expire_date_and_time_formated: {
+        type: String,
+        trim: true
     },
     expire_in: {
         type: String,
@@ -60,6 +68,11 @@ const CheckoutSchema = new mongoose.Schema({
     },
     attachment: {
         type: Object,
+        default: null
+    },
+    notes: {
+        type: String,
+        trim: true,
         default: null
     },
     billing_address: {

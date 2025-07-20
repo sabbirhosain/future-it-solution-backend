@@ -1,10 +1,13 @@
 import mongoose from "mongoose";
 import CheckoutModel from "../../models/items/checkout_model.js";
 import ItemsModel from "../../models/items/items_model.js";
+import { v2 as cloudinary } from 'cloudinary';
+import { uploadCloudinary } from "../../multer/cloudinary.js";
+import { calculateTimeDifference, formatDateTime } from "../../utils/helper.js";
 
 export const create = async (req, res) => {
     try {
-        const { date_and_time, item_id, grand_total, payment_method, billing_address, status } = req.body;
+        const { date_and_time, item_id, grand_total, billing_address } = req.body;
 
         const requiredFields = ['item_id'];
         for (let field of requiredFields) {
@@ -23,12 +26,6 @@ export const create = async (req, res) => {
         // Check availability
         if (findItem.availability !== "available") {
             return res.json({ success: false, message: "Item is not available for purchase" });
-        }
-
-        // Validate payment method
-        const selectPaymentMethods = ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank'];
-        if (!selectPaymentMethods.includes(payment_method)) {
-            return res.json({ payment_method: 'Field is required. Use [ credit_card, mobile_bank, cash_on_delivery and bank ]' });
         }
 
         // Validate billing address structure
@@ -66,8 +63,6 @@ export const create = async (req, res) => {
             sendMoney_or_cashOut_fee: findItem.total_price * 0.02, // 2% of item price
             sub_total: findItem.total_price,
             grand_total: calculatedTotal,
-            payment_method: payment_method,
-            status: status,
             billing_address: {
                 ...billing_address,
                 full_name: billing_address.first_name + " " + billing_address.last_name
@@ -202,12 +197,84 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
+        const { payment_method, billing_address, active_date_and_time, expire_date_and_time, expire_in, notes, status } = req.body;
 
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
 
+        // check exist data
+        const findOne = await CheckoutModel.findById(id);
+        if (!findOne) { return res.json({ success: false, message: "Item not found" }) }
 
+        // Validate payment method
+        const selectPaymentMethods = ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank'];
+        if (!selectPaymentMethods.includes(payment_method)) {
+            return res.json({ payment_method: 'Field is required. Use [ credit_card, mobile_bank, cash_on_delivery and bank ]' });
+        }
 
+        // Validate billing address structure
+        const billingAddress = ['first_name', 'last_name', 'email', 'phone', 'country', 'address'];
+        for (let field of billingAddress) {
+            if (!billing_address?.[field]) {
+                return res.json({ [field]: 'is required (string)' });
+            }
+        }
 
+        // Validate and calculate expire_in
+        let calculatedExpireIn = expire_in;
+        if (active_date_and_time && expire_date_and_time) {
+            if (new Date(expire_date_and_time) <= new Date(active_date_and_time)) {
+                return res.json({ success: false, message: 'Expire date must be after active date' });
+            }
+            calculatedExpireIn = calculateTimeDifference(active_date_and_time, expire_date_and_time);
+        }
 
+        // file upload
+        let attachment = findOne.attachment;
+        if (req.file && req.file.path) {
+            try {
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Checkout');
+                if (cloudinaryResult) {
+                    if (attachment && attachment.public_id) {
+                        await cloudinary.uploader.destroy(attachment.public_id); // Delete old image if it exists
+                    }
+                    attachment = cloudinaryResult;
+                }
+            } catch (fileError) {
+                console.error('File upload error:', fileError);
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error processing file upload'
+                });
+            }
+        }
+
+        // update
+        const result = await CheckoutModel.findByIdAndUpdate(id, {
+            payment_method: payment_method,
+            active_date_and_time: active_date_and_time,
+            expire_date_and_time: expire_date_and_time,
+            active_date_and_time_formated: formatDateTime(active_date_and_time),
+            expire_date_and_time_formated: formatDateTime(expire_date_and_time),
+            expire_in: calculatedExpireIn,
+            notes: notes,
+            status: status,
+            attachment: attachment,
+            billing_address: {
+                ...billing_address,
+                full_name: billing_address.first_name + " " + billing_address.last_name
+            }
+        }, { new: true })
+
+        if (result) {
+            return res.json({
+                success: true,
+                message: 'Item Update Success',
+                payload: result
+            });
+        }
 
     } catch (error) {
         return res.json({
@@ -219,6 +286,35 @@ export const update = async (req, res) => {
 
 export const destroy = async (req, res) => {
     try {
+        const { id } = req.params
+
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
+
+        // check exist data
+        const findOne = await CheckoutModel.findById(id);
+        if (!findOne) {
+            return res.json({ message: "Item not found" });
+        }
+
+        const result = await CheckoutModel.findByIdAndDelete(id);
+
+        // Check not found
+        if (!result) {
+            return res.json({ success: false, message: "Data not found" });
+
+        } else {
+            if (findOne.attachment && findOne.attachment.public_id) {
+                await cloudinary.uploader.destroy(findOne.attachment.public_id);
+            }
+
+            return res.json({
+                success: true,
+                message: 'Item Destroy Success',
+            });
+        }
 
     } catch (error) {
         return res.json({
