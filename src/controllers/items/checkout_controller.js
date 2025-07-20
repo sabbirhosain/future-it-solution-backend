@@ -4,7 +4,7 @@ import ItemsModel from "../../models/items/items_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { date_and_time, item_id, items, send_or_cashout_fee, sub_total, grand_total, payment_method, billing_address, status } = req.body;
+        const { date_and_time, item_id, grand_total, payment_method, billing_address, status } = req.body;
 
         const requiredFields = ['item_id'];
         for (let field of requiredFields) {
@@ -39,8 +39,8 @@ export const create = async (req, res) => {
             }
         }
 
-        // Verify grand total
-        const calculatedTotal = findItem.total_price + (sub_total || 0) + (send_or_cashout_fee || 0);
+        //  grand total
+        const calculatedTotal = findItem.total_price + (findItem.total_price * 0.02 || 0);
         if (Math.abs(calculatedTotal - grand_total) > 0.01) {
             return res.status(400).json({
                 status: "error",
@@ -63,12 +63,15 @@ export const create = async (req, res) => {
                 expired_type: findItem.expired_type,
                 discount: findItem.discount,
             },
-            send_or_cashout_fee: send_or_cashout_fee,
+            sendMoney_or_cashOut_fee: findItem.total_price * 0.02, // 2% of item price
             sub_total: findItem.total_price,
             grand_total: calculatedTotal,
             payment_method: payment_method,
             status: status,
-            billing_address: billing_address
+            billing_address: {
+                ...billing_address,
+                full_name: billing_address.first_name + " " + billing_address.last_name
+            }
         }).save();
 
         return res.json({
@@ -84,3 +87,143 @@ export const create = async (req, res) => {
         });
     }
 };
+
+export const show = async (req, res) => {
+    try {
+        const search = req.query.search || "";
+        const { payment, active_date, expire_date, status } = req.query;
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const searchQuery = new RegExp('.*' + search + '.*', 'i');
+
+        // Create base filter
+        const dataFilter = {
+            $or: [
+                { 'items.item_name': { $regex: searchQuery } },
+                { 'billing_address.full_name': { $regex: searchQuery } },
+                { 'billing_address.email': { $regex: searchQuery } },
+                { 'billing_address.phone': { $regex: searchQuery } }
+            ]
+        };
+
+        // Add date filter
+        if (active_date || expire_date) {
+            if (active_date) {
+                const activeDate = new Date(active_date);
+                activeDate.setHours(0, 0, 0, 0);
+                dataFilter.active_date_and_time = { $gte: activeDate };
+            }
+            if (expire_date) {
+                const expireDate = new Date(expire_date);
+                expireDate.setHours(23, 59, 59, 999);
+                if (dataFilter.active_date_and_time) {
+                    dataFilter.active_date_and_time.$lte = expireDate;
+                } else {
+                    dataFilter.expire_date_and_time = { $lte: expireDate };
+                }
+            }
+        }
+
+        // Payment method validation and filter
+        const paymentMethod = ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank']
+        if (payment && paymentMethod.includes(payment)) {
+            dataFilter.payment_method = payment;
+        }
+
+        // Status validation and filter
+        const validStatus = ['pending', 'completed', 'cancelled', 'returned'];
+        if (status && validStatus.includes(status)) {
+            dataFilter.status = status;
+        }
+
+        const result = await CheckoutModel.find(dataFilter)
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .skip((page - 1) * limit)
+
+        const count = await CheckoutModel.find(dataFilter).countDocuments();
+
+        // Check not found
+        if (result.length === 0) {
+            return res.json({ success: false, message: "No Data found" });
+        } else {
+            return res.json({
+                success: true,
+                message: 'Item Show Success',
+                pagination: {
+                    per_page: Number(limit),
+                    current_page: Number(page),
+                    total_data: count,
+                    total_page: Math.ceil(count / Number(limit)),
+                    previous: Number(page) - 1 > 0 ? Number(page) - 1 : null,
+                    next: Number(page) + 1 <= Math.ceil(count / Number(limit)) ? Number(page) + 1 : null
+                },
+                payload: result,
+            });
+        }
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}
+
+export const single = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate the mongoose id
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.json({ success: false, message: "Invalid ID format" });
+        }
+
+        const result = await CheckoutModel.findById(id);
+
+        // Check not found
+        if (!result) {
+            return res.json({ message: "Data not found" });
+        } else {
+            return res.json({
+                success: true,
+                message: 'Item Show Success',
+                payload: result
+            });
+        }
+
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}
+
+export const update = async (req, res) => {
+    try {
+        const { id } = req.params
+
+
+
+
+
+
+
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}
+
+export const destroy = async (req, res) => {
+    try {
+
+    } catch (error) {
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
+        });
+    }
+}

@@ -50,13 +50,16 @@ router.post("/items/:item_id/reviews/:review_id/reply", Review.replyToReview);
 
 // Private routes || checkout
 router.post("/items/product/checkout", CheckOut.create)
+router.get("/items/product/checkout", CheckOut.show)
+router.put("/items/product/checkout/:id", CheckOut.update)
+router.delete("/items/product/checkout", CheckOut.destroy)
 
 // Private routes || appointment meeting
 router.post("/appointment/schedule", isAuthenticated, Appointment.create)
 router.get("/appointment/schedule", Appointment.show)
 router.get("/appointment/schedule/:id", Appointment.single)
 router.put("/appointment/schedule/:id", Appointment.update)
-router.delete("/appointment/schedule/:id", Appointment.update)
+router.delete("/appointment/schedule/:id", Appointment.destroy)
 
 // Private routes || contact from
 router.post("/users/contact-form", ContactForm.create)

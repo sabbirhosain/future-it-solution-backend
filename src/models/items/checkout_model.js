@@ -21,7 +21,7 @@ const CheckoutSchema = new mongoose.Schema({
         expired_type: { type: String },
         discount: { type: Number },
     },
-    send_or_cashout_fee: {
+    sendMoney_or_cashOut_fee: {
         type: Number,
         trim: true,
         default: 0
@@ -47,6 +47,10 @@ const CheckoutSchema = new mongoose.Schema({
     },
     expire_date_and_time: {
         type: Date,
+        default: null
+    },
+    expire_in: {
+        type: String,
         default: null
     },
     status: {
