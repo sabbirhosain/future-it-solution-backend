@@ -40,9 +40,9 @@ export const create = async (req, res) => {
         const result = await new CheckoutModel({
             date_and_time: date_and_time,
             item_id: item_id,
-            items: {
-                item_name: findItem.item_name,
-                categories: findItem.categories,
+            item_name: findItem.item_name,
+            categories: findItem.categories,
+            package: {
                 package_name: findItem.package_name,
                 quantity: findItem.quantity,
                 price: findItem.price,

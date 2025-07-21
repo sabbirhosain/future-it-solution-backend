@@ -10,9 +10,15 @@ const CheckoutSchema = new mongoose.Schema({
         ref: 'Items',
         required: true
     },
-    items: {
-        item_name: { type: String },
-        categories: { type: String },
+    item_name: {
+        type: String,
+        trim: true
+    },
+    categories: {
+        type: String,
+        trim: true
+    },
+    package: {
         package_name: { type: String },
         quantity: { type: Number },
         price: { type: Number },
