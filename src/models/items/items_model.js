@@ -68,7 +68,12 @@ const ItemsSchema = new mongoose.Schema({
         trim: true,
         default: 0
     },
-    total_price: {
+    cash_out_fee: {
+        type: Number,
+        trim: true,
+        default: 0
+    },
+    grand_total: {
         type: Number,
         trim: true,
         default: 0

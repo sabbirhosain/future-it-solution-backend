@@ -7,7 +7,7 @@ import { calculateTimeDifference, formatDateTime } from "../../utils/helper.js";
 
 export const create = async (req, res) => {
     try {
-        const { date_and_time, item_id, grand_total, billing_address } = req.body;
+        const { date_and_time, item_id, billing_address } = req.body;
 
         const requiredFields = ['item_id'];
         for (let field of requiredFields) {
@@ -36,15 +36,6 @@ export const create = async (req, res) => {
             }
         }
 
-        //  grand total
-        const calculatedTotal = findItem.total_price + (findItem.total_price * 0.02 || 0);
-        if (Math.abs(calculatedTotal - grand_total) > 0.01) {
-            return res.status(400).json({
-                status: "error",
-                message: "Grand total doesn't match calculated amount"
-            });
-        }
-
         // Save to DB
         const result = await new CheckoutModel({
             date_and_time: date_and_time,
@@ -59,10 +50,9 @@ export const create = async (req, res) => {
                 expired: findItem.expired,
                 expired_type: findItem.expired_type,
                 discount: findItem.discount,
+                cash_out_fee: findItem.cash_out_fee,
+                grand_total: findItem.grand_total
             },
-            sendMoney_or_cashOut_fee: findItem.total_price * 0.02, // 2% of item price
-            sub_total: findItem.total_price,
-            grand_total: calculatedTotal,
             billing_address: {
                 ...billing_address,
                 full_name: billing_address.first_name + " " + billing_address.last_name

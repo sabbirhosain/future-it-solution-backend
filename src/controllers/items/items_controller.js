@@ -6,7 +6,7 @@ import CategoriesModel from "../../models/items/categories_model.js";
 
 export const create = async (req, res) => {
     try {
-        const { item_name, categories_id, categories, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, total_price, notes } = req.body;
+        const { item_name, categories_id, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, notes } = req.body;
         const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description'];
         for (let field of requiredFields) {
             if (!req.body[field]) { return res.json({ [field]: 'Field is required (string)' }) }
@@ -60,7 +60,9 @@ export const create = async (req, res) => {
 
         // Calculate grand_total if no errors
         const discountAmount = (price * (discount || 0)) / 100;
-        const total = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
+        const subTotal = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
+        const cashOutFee = Math.max(0, parseFloat(subTotal * 0.02 || 0).toFixed(2));
+        const grandTotal = Math.max(0, parseFloat(subTotal + cashOutFee).toFixed(2));
 
         // File upload handling
         let attachment = null;
@@ -93,7 +95,8 @@ export const create = async (req, res) => {
             expired: expired,
             expired_type: expired_type,
             discount: discount,
-            total_price: total,
+            cash_out_fee: cashOutFee,
+            grand_total: grandTotal,
             notes: notes,
             attachment: attachment
         }).save();
@@ -173,7 +176,7 @@ export const show = async (req, res) => {
                     previous: Number(page) - 1 > 0 ? Number(page) - 1 : null,
                     next: Number(page) + 1 <= Math.ceil(count / Number(limit)) ? Number(page) + 1 : null
                 },
-                payload: result,
+                payload: result
             });
         }
     } catch (error) {
@@ -217,7 +220,7 @@ export const single = async (req, res) => {
 export const update = async (req, res) => {
     try {
         const { id } = req.params
-        const { item_name, categories_id, categories, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, total_price, notes, status, availability } = req.body;
+        const { item_name, categories_id, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, notes, status, availability } = req.body;
 
         // Validate the mongoose id
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -293,8 +296,9 @@ export const update = async (req, res) => {
 
         // Calculate grand_total if no errors
         const discountAmount = (price * (discount || 0)) / 100;
-        const total = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
-
+        const subTotal = Math.max(0, parseFloat((price - discountAmount).toFixed(2)));
+        const cashOutFee = Math.max(0, parseFloat(subTotal * 0.02 || 0).toFixed(2));
+        const grandTotal = Math.max(0, parseFloat(subTotal + cashOutFee).toFixed(2));
 
         // file upload
         let attachment = findOne.attachment;
@@ -331,7 +335,8 @@ export const update = async (req, res) => {
             expired: expired,
             expired_type: expired_type,
             discount: discount,
-            total_price: total,
+            cash_out_fee: cashOutFee,
+            grand_total: grandTotal,
             notes: notes,
             status: status,
             availability: availability,

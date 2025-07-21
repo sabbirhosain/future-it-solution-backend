@@ -20,21 +20,8 @@ const CheckoutSchema = new mongoose.Schema({
         expired: { type: Number },
         expired_type: { type: String },
         discount: { type: Number },
-    },
-    sendMoney_or_cashOut_fee: {
-        type: Number,
-        trim: true,
-        default: 0
-    },
-    sub_total: {
-        type: Number,
-        trim: true,
-        default: 0
-    },
-    grand_total: {
-        type: Number,
-        required: true,
-        default: 0
+        cash_out_fee: { type: Number },
+        grand_total: { type: Number }
     },
     payment_method: {
         type: String,
