@@ -205,13 +205,29 @@ export const update = async (req, res) => {
         }
 
         // check exist data
-        const findOne = await CheckoutModel.findById(id);
-        if (!findOne) { return res.json({ success: false, message: "Item not found" }) }
+        const findItem = await CheckoutModel.findById(id);
+        if (!findItem) { return res.json({ success: false, message: "Item not found" }) }
 
         // Validate payment method
         const selectPaymentMethods = ['credit_card', 'mobile_bank', 'cash_on_delivery', 'bank'];
         if (!selectPaymentMethods.includes(payment_method)) {
             return res.json({ payment_method: 'Field is required. Use [ credit_card, mobile_bank, cash_on_delivery and bank ]' });
+        }
+
+        // Validate payment method
+        const selectStatus = ['pending', 'completed', 'cancelled', 'returned'];
+        if (!selectStatus.includes(status)) {
+            return res.json({ status: 'Field is required. Use [ pending, completed, cancelled, returned ]' });
+        }
+
+        // If the status changes, the total_sold amount will change.
+        let totalSoldUpdate = 0;
+        if (status && findItem.status !== status) {
+            if (status === 'completed' && findItem.status !== 'completed') {
+                totalSoldUpdate = 1;
+            } else if (status === 'cancelled' && findItem.status === 'completed') {
+                totalSoldUpdate = -1;
+            }
         }
 
         // Validate billing address structure
@@ -232,7 +248,7 @@ export const update = async (req, res) => {
         }
 
         // file upload
-        let attachment = findOne.attachment;
+        let attachment = findItem.attachment;
         if (req.file && req.file.path) {
             try {
                 const cloudinaryResult = await uploadCloudinary(req.file.path, 'Checkout');
@@ -267,6 +283,11 @@ export const update = async (req, res) => {
                 full_name: billing_address.first_name + " " + billing_address.last_name
             }
         }, { new: true })
+
+        // Update total_sold in ItemsModel if needed
+        if (totalSoldUpdate !== 0 && mongoose.Types.ObjectId.isValid(result.item_id)) {
+            await ItemsModel.findByIdAndUpdate(result.item_id, { $inc: { total_sold: totalSoldUpdate } });
+        }
 
         if (result) {
             return res.json({

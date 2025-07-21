@@ -81,7 +81,7 @@ const ItemsSchema = new mongoose.Schema({
     total_sold: {
         type: Number,
         trim: true,
-        default: 1
+        default: 0
     },
     notes: {
         type: String,
