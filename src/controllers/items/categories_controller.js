@@ -14,8 +14,8 @@ export const create = async (req, res) => {
         }
 
         // Check if phone or email already exists
-        const existingPhone = await CategoriesModel.findOne({ $or: [{ categories: { $regex: new RegExp(`^${categories.trim()}$`, 'i') } }] });
-        if (existingPhone) { return res.json({ message: "Categories already exists." }) };
+        const existingCategory = await CategoriesModel.findOne({ $or: [{ categories: { $regex: new RegExp(`^${categories.trim()}$`, 'i') } }] });
+        if (existingCategory) { return res.json({ message: "Categories already exists." }) };
 
 
         // File upload handling
@@ -151,14 +151,14 @@ export const update = async (req, res) => {
         for (let field of requiredFields) {
             const value = req.body[field];
             if (!value || value.trim() === '') {
-                return res.status(400).json({ [field]: 'is required and cannot be empty' });
+                return res.json({ [field]: 'is required and cannot be empty' });
             }
         }
 
         // existing tools name chack
         const existing = await CategoriesModel.findOne({ categories: categories });
         if (existing && existing._id.toString() !== id) {
-            return res.status(400).json({ categories: 'already exists. try another' });
+            return res.json({ success: false, message: 'already exists. try another' });
         }
 
         // file upload

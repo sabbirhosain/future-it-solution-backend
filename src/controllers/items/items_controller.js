@@ -7,9 +7,12 @@ import CategoriesModel from "../../models/items/categories_model.js";
 export const create = async (req, res) => {
     try {
         const { item_name, categories_id, short_description, long_description, features, package_name, quantity, price, currency, expired, expired_type, discount, notes } = req.body;
-        const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description'];
+        const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description', 'package_name', 'quantity', 'price'];
         for (let field of requiredFields) {
-            if (!req.body[field]) { return res.json({ [field]: 'Field is required (string)' }) }
+            const value = req.body[field];
+            if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+                return res.json({ [field]: 'Field is required.' });
+            }
         }
 
         // Validate category exists
@@ -25,37 +28,16 @@ export const create = async (req, res) => {
         const existing = await ItemsModel.exists({ $or: [{ item_name: { $regex: new RegExp(`^${item_name.trim()}$`, 'i') } }] })
         if (existing) { return res.json({ success: false, message: "Item name already exists" }) }
 
-        // Validate feilds
-        if (short_description.length > 100) {
-            return res.json({ short_description: 'Short description must be 100 characters or less' });
-        }
-
         if (features && (!Array.isArray(features) || features.some(feature => typeof feature !== 'string'))) {
             return res.json({ features: 'must be an array of strings' });
-        }
-
-        if (!package_name || typeof package_name !== 'string' || package_name.trim() === '') {
-            return res.json({ package_name: 'is required and must be a non-empty string' });
-        }
-
-        if (price === undefined || price === null || typeof price !== 'number' || price <= 0) {
-            return res.json({ price: 'is required and must be greater than 0' });
         }
 
         if (!currency || !['BDT', 'USD'].includes(currency)) {
             return res.json({ currency: 'is required and must be either BDT or USD' });
         }
 
-        if (expired !== undefined && expired !== null && (typeof expired !== 'number' || expired <= 0)) {
-            return res.json({ expired: 'is must be a number greater than 0' });
-        }
-
         if (expired_type && !['Day', 'Month', 'Year'].includes(expired_type)) {
             return res.json({ expired_type: 'is must be Day, Month, or Year' });
-        }
-
-        if (discount !== undefined && discount !== null && (typeof discount !== 'number' || discount < 0 || discount > 100)) {
-            return res.json({ discount: 'is must be number between 0 and 100' });
         }
 
         // Calculate grand_total if no errors
@@ -231,11 +213,11 @@ export const update = async (req, res) => {
         const findOne = await ItemsModel.findById(id);
         if (!findOne) { return res.json({ success: false, message: "Item not found" }) }
 
-        const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description'];
+        const requiredFields = ['item_name', 'categories_id', 'short_description', 'long_description', 'package_name', 'quantity', 'price'];
         for (let field of requiredFields) {
             const value = req.body[field];
-            if (!value || value.trim() === '') {
-                return res.status(400).json({ [field]: 'is required and cannot be empty' });
+            if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+                return res.json({ success: false, [field]: 'Field is required.' });
             }
         }
 
@@ -253,37 +235,16 @@ export const update = async (req, res) => {
             return res.json({ item_name: 'already exists. try another' });
         }
 
-        // Validate feilds
-        if (short_description.length > 100) {
-            return res.json({ short_description: 'Short description must be 100 characters or less' });
-        }
-
         if (features && (!Array.isArray(features) || features.some(feature => typeof feature !== 'string'))) {
             return res.json({ features: 'must be an array of strings' });
-        }
-
-        if (!package_name || typeof package_name !== 'string' || package_name.trim() === '') {
-            return res.json({ package_name: 'is required and must be a non-empty string' });
-        }
-
-        if (price === undefined || price === null || typeof price !== 'number' || price <= 0) {
-            return res.json({ price: 'is required and must be greater than 0' });
         }
 
         if (!currency || !['BDT', 'USD'].includes(currency)) {
             return res.json({ currency: 'is required and must be either BDT or USD' });
         }
 
-        if (expired !== undefined && expired !== null && (typeof expired !== 'number' || expired <= 0)) {
-            return res.json({ expired: 'is must be a number greater than 0' });
-        }
-
         if (expired_type && !['Day', 'Month', 'Year'].includes(expired_type)) {
             return res.json({ expired_type: 'is must be Day, Month, or Year' });
-        }
-
-        if (discount !== undefined && discount !== null && (typeof discount !== 'number' || discount < 0 || discount > 100)) {
-            return res.json({ discount: 'is must be number between 0 and 100' });
         }
 
         if (status && !['show', 'hide'].includes(status)) {
