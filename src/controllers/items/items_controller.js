@@ -112,8 +112,8 @@ export const show = async (req, res) => {
             $or: [{ item_name: { $regex: searchQuery } }],
         };
 
-        // Category filter (if provided)
-        if (categories) {
+        // Category filter (if provided and valid)
+        if (categories && categories !== 'undefined' && categories !== 'null' && categories !== '') {
             if (mongoose.Types.ObjectId.isValid(categories)) {
                 dataFilter.categories_id = categories;
             } else {
@@ -124,15 +124,15 @@ export const show = async (req, res) => {
             }
         }
 
-        // Add status filter
+        // Add status filter (if provided and not empty)
         const allowedStatuses = ['show', 'hide'];
-        if (status !== "" && allowedStatuses.includes(status)) {
+        if (status && status !== 'undefined' && status !== 'null' && status !== '' && allowedStatuses.includes(status)) {
             dataFilter.status = status;
         }
 
-        // Add availability filter
+        // Add availability filter (if provided and not empty)
         const allowedAvailability = ['available', 'unavailable'];
-        if (availability !== "" && allowedAvailability.includes(availability)) {
+        if (availability && availability !== 'undefined' && availability !== 'null' && availability !== '' && allowedAvailability.includes(availability)) {
             dataFilter.availability = availability;
         }
 

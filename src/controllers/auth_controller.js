@@ -317,7 +317,7 @@ export const show = async (req, res) => {
 
         // Add suspended filter
         const allowedStatuses = ['active', 'pending', 'hold'];
-        if (status !== "" && allowedStatuses.includes(status)) {
+        if (status && status !== 'undefined' && status !== 'null' && status !== '' && allowedStatuses.includes(status)) {
             dataFilter.status = status;
         }
 
@@ -326,18 +326,24 @@ export const show = async (req, res) => {
             dataFilter.isVerified = verified === "true"; // Convert to boolean
         }
 
-        // Add date filter
+        // Date range filter (only if provided)
         if (from_date || to_date) {
             dataFilter.date_and_time = {};
-            if (join_date_from) {
+
+            if (from_date) {
                 const fromDate = new Date(from_date);
-                fromDate.setHours(0, 0, 0, 0);
-                dataFilter.date_and_time.$gte = fromDate;
+                if (!isNaN(fromDate.getTime())) {
+                    fromDate.setHours(0, 0, 0, 0);
+                    dataFilter.date_and_time.$gte = fromDate;
+                }
             }
+
             if (to_date) {
                 const toDate = new Date(to_date);
-                toDate.setHours(23, 59, 59, 999);
-                dataFilter.date_and_time.$lte = toDate;
+                if (!isNaN(toDate.getTime())) {
+                    toDate.setHours(23, 59, 59, 999);
+                    dataFilter.date_and_time.$lte = toDate;
+                }
             }
         }
 
