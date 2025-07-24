@@ -6,6 +6,11 @@ const CategoriesSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    items_count: {
+        type: Number,
+        trim: true,
+        default: 0
+    },
     attachment: {
         type: Object,
         default: null
