@@ -84,6 +84,9 @@ export const create = async (req, res) => {
         }).save();
 
         if (result) {
+            // Increment items_count in the category
+            await CategoriesModel.findByIdAndUpdate(categories_id, { $inc: { items_count: 1 } });
+
             return res.json({
                 success: true,
                 message: 'Item Create Success',
@@ -281,6 +284,14 @@ export const update = async (req, res) => {
             }
         }
 
+        // Check if category changed
+        if (findOne.categories_id.toString() !== categories_id) {
+            // Decrement old category count
+            await CategoriesModel.findByIdAndUpdate(findOne.categories_id, { $inc: { items_count: -1 } });
+            // Increment new category count
+            await CategoriesModel.findByIdAndUpdate(categories_id, { $inc: { items_count: 1 } });
+        }
+
         // update
         const result = await FreeItemsModel.findByIdAndUpdate(id, {
             item_name: item_name,
@@ -342,6 +353,9 @@ export const destroy = async (req, res) => {
             return res.json({ success: false, message: "Data not found" });
 
         } else {
+            // Decrement the items_count
+            await CategoriesModel.findByIdAndUpdate(findOne.categories_id, { $inc: { items_count: -1 } });
+
             if (findOne.attachment && findOne.attachment.public_id) {
                 await cloudinary.uploader.destroy(findOne.attachment.public_id);
             }
