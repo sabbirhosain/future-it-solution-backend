@@ -104,7 +104,7 @@ export const show = async (req, res) => {
         const search = req.query.search || "";
         const { categories, status, availability } = req.query;
         const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 20;
+        const limit = Number(req.query.limit) || 12;
         const searchQuery = new RegExp('.*' + search + '.*', 'i');
 
         // Add search filter
