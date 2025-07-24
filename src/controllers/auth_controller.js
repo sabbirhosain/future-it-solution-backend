@@ -155,7 +155,7 @@ export const login = async (req, res) => {
         if (!password) { return res.json({ password: "feild is required" }) }
 
         // Find by existing username, email, phone
-        const existing = await AuthModel.findOne({
+        const userExist = await AuthModel.findOne({
             $or: [
                 { user_name: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
                 { email: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
@@ -163,53 +163,36 @@ export const login = async (req, res) => {
             ]
         });
 
-        if (!existing) {
+        if (!userExist) {
             return res.json({ success: false, message: "Invalid credentials. Please register." });
         }
 
         // Reject admin
-        if (existing.isAdmin) {
+        if (userExist.isAdmin) {
             return res.json({ success: false, message: "Access denied. Only user accounts can log in here." });
         }
 
         // Check if email is verified
-        if (!existing.isVerified) {
+        if (!userExist.isVerified) {
             return res.json({ success: false, message: "Please verify your email before logging in." });
         }
 
-        if (existing.status === 'hold') {
+        if (userExist.status === 'hold') {
             return res.json({ success: false, message: "Account is on hold. Please contact support." });
         }
 
         // Check password match
-        const passwordMatch = await bcrypt.compare(password, existing.password);
+        const passwordMatch = await bcrypt.compare(password, userExist.password);
         if (!passwordMatch) {
             return res.json({ success: false, message: 'Invalid credentials. Please try again.' });
         }
 
-        const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
-        const refreshToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, '7d');
-
-        // create access token
-        res.cookie('accessToken', accessToken, {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-            maxAge: 1 * 24 * 60 * 60 * 1000 //1 day
-        });
-
-        // create refresh token
-        res.cookie('refreshToken', refreshToken, {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-            maxAge: 7 * 24 * 60 * 60 * 1000 //7 day
-        });
+        const accessToken = createJSONWebToken({ ...userExist.toObject() }, process.env.JWT_SECRET_KEY, "1d");
+        const refreshToken = createJSONWebToken({ ...userExist.toObject() }, process.env.JWT_SECRET_KEY, '7d');
 
         return res.json({
             success: true,
             message: 'User login successful',
-            payload: existing,
             accessToken,
             refreshToken
         });
@@ -229,7 +212,7 @@ export const adminLogin = async (req, res) => {
         if (!password) { return res.json({ password: "Password feild is required" }) }
 
         // Find by existing username, email, phone
-        const existing = await AuthModel.findOne({
+        const userExist = await AuthModel.findOne({
             $or: [
                 { user_name: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
                 { email: { $regex: new RegExp(`^${user.trim()}$`, 'i') } },
@@ -237,51 +220,34 @@ export const adminLogin = async (req, res) => {
             ]
         });
 
-        if (!existing) {
+        if (!userExist) {
             return res.json({ success: false, message: "Invalid credentials" });
         }
 
         // Only difference from regular login - checks isAdmin
-        if (!existing.isAdmin) {
+        if (!userExist.isAdmin) {
             return res.json({ success: false, message: "Access denied. Only admin can log in." });
         }
 
         // Check if email is verified
-        if (!existing.isVerified) {
+        if (!userExist.isVerified) {
             return res.json({ success: false, message: "Please verify your email before logging in." });
         }
 
-        if (existing.status === 'hold') {
+        if (userExist.status === 'hold') {
             return res.json({ success: false, message: "Account is on hold. Please contact support." });
         }
 
         // Check password match
-        const passwordMatch = await bcrypt.compare(password, existing.password);
+        const passwordMatch = await bcrypt.compare(password, userExist.password);
         if (!passwordMatch) { return res.json({ success: false, message: 'Invalid credentials' }) }
 
-        const accessToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, "1d");
-        const refreshToken = createJSONWebToken({ ...existing.toObject() }, process.env.JWT_SECRET_KEY, '7d');
-
-        // create access token
-        res.cookie('accessToken', accessToken, {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-            maxAge: 1 * 24 * 60 * 60 * 1000 //1 day
-        });
-
-        // create refresh token
-        res.cookie('refreshToken', refreshToken, {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'none',
-            maxAge: 7 * 24 * 60 * 60 * 1000 //7 day
-        });
+        const accessToken = createJSONWebToken({ ...userExist.toObject() }, process.env.JWT_SECRET_KEY, "1d");
+        const refreshToken = createJSONWebToken({ ...userExist.toObject() }, process.env.JWT_SECRET_KEY, '7d');
 
         return res.json({
             success: true,
             message: 'Admin login successful',
-            payload: existing,
             accessToken,
             refreshToken
         });
@@ -526,90 +492,47 @@ export const destroy = async (req, res) => {
 
 export const verifyToken = async (req, res) => {
     try {
-        const { token } = req.body;
-
-        // Validate input
-        if (!token || typeof token !== 'string') {
+        const { accessToken } = req.body;
+        if (!accessToken || typeof accessToken !== 'string') {
             return res.status(400).json({
-                isValid: false,
-                message: 'Token is required and must be a string'
+                success: false, message: 'Token is required.',
+                accessToken: 'field is required.'
             });
         }
 
         // Verify token
-        const decoded = JWT.verify(token, process.env.JWT_SECRET_KEY);
-
-        // check exist data
-        const findOne = await AuthModel.findById(decoded.user_id);
-        if (!findOne) { return res.json({ message: "Item not found" }) }
+        const decoded = JWT.verify(accessToken, process.env.JWT_SECRET_KEY);
+        const findUser = await AuthModel.findById(decoded._id);
+        if (!findUser) { return res.json({ message: "User not found" }) }
 
         return res.json({
-            isValid: true,
+            success: true,
             message: 'Token is valid',
         });
 
     } catch (error) {
-        console.error('Token verification error:', error.message);
 
         // Handle specific JWT errors
         if (error instanceof JWT.TokenExpiredError) {
             return res.status(401).json({
-                isValid: false,
-                error: 'Token expired'
+                success: false,
+                message: 'Token expired'
             });
         }
 
         if (error instanceof JWT.JsonWebTokenError) {
             return res.status(401).json({
-                isValid: false,
-                error: 'Invalid token'
+                success: false,
+                message: 'Invalid token'
             });
         }
 
-        return res.status(500).json({
-            isValid: false,
-            error: 'Internal server error during token verification'
+        return res.json({
+            success: false,
+            error: error.message || 'Internal Server Error'
         });
     }
 };
-
-export const logout = async (req, res) => {
-    try {
-        // Check if user is already logged out
-        const accessTokenExists = req.cookies.accessToken;
-        const refreshTokenExists = req.cookies.refreshToken;
-
-        if (!accessTokenExists && !refreshTokenExists) {
-            return res.status(200).json({
-                success: false,
-                message: 'User is already logged out.',
-            });
-        }
-
-        // Clear cookies with security options
-        res.clearCookie('accessToken', {
-            httpOnly: true,
-            sameSite: 'none'
-        });
-
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            sameSite: 'none'
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: 'User logged out success',
-        });
-
-    } catch (error) {
-        console.error('Logout error:', error);
-        return res.status(500).json({
-            success: false,
-            message: error.message || 'Internal Server Error'
-        });
-    }
-}
 
 export const passwordChange = async (req, res) => {
     try {
@@ -763,13 +686,45 @@ export const changeStatus = async (req, res) => {
     }
 };
 
-export const tokenGenerate = async (req, res) => {
+export const generateNewToken = async (req, res) => {
     try {
+        const { refreshToken } = req.body
+        if (!refreshToken) { return res.json({ success: false, message: 'Refresh token not provided' }) }
+
+        // Verify the refresh token
+        const decoded = JWT.verify(refreshToken, process.env.JWT_SECRET_KEY);
+        const findUser = await AuthModel.findById(decoded._id);
+        if (!findUser) { return res.json({ message: "User not found" }) }
+
+        // Generate new access token
+        const accessToken = createJSONWebToken({ ...findUser.toObject() }, process.env.JWT_SECRET_KEY, "1d");
+        const newRefreshToken = createJSONWebToken({ ...findUser.toObject() }, process.env.JWT_SECRET_KEY, '7d');
+        console.log('Generate New Access Token.');
+
+        return res.json({
+            success: true,
+            message: 'Generate New Access Token.',
+            accessToken,
+            refreshToken: newRefreshToken
+        });
 
     } catch (error) {
-        return res.json({
+        if (error instanceof JWT.TokenExpiredError) {
+            return res.status(401).json({
+                success: false,
+                message: 'Refresh token expired. Please login again.'
+            });
+        }
+
+        if (error instanceof JWT.JsonWebTokenError) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid refresh token. Please login again.'
+            });
+        }
+        return res.status(500).json({
             success: false,
-            error: error.message || 'Internal Server Error'
+            message: error.message || 'Internal Server Error'
         });
     }
 }

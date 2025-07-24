@@ -20,6 +20,7 @@ router.post("/auth/admin/login", AuthController.adminLogin)
 router.get("/auth/verify-email", AuthController.verifyEmail)
 router.post("/auth/verify-token", AuthController.verifyToken)
 router.post("/auth/forget-password", AuthController.forgetPassword)
+router.post("/auth/generate-new-token", AuthController.generateNewToken)
 
 // Private routes || user authorization
 router.get("/auth/users/list", AuthController.show)
