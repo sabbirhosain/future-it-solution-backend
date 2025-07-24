@@ -50,7 +50,7 @@ export const create = async (req, res) => {
         let attachment = null;
         if (req.file && req.file.path) {
             try {
-                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Free Tools');
                 if (cloudinaryResult) { attachment = cloudinaryResult }
 
             } catch (fileError) {
@@ -268,7 +268,7 @@ export const update = async (req, res) => {
         let attachment = findOne.attachment;
         if (req.file && req.file.path) {
             try {
-                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Premium Tools');
+                const cloudinaryResult = await uploadCloudinary(req.file.path, 'Free Tools');
                 if (cloudinaryResult) {
                     if (attachment && attachment.public_id) {
                         await cloudinary.uploader.destroy(attachment.public_id); // Delete old image if it exists
