@@ -537,7 +537,11 @@ export const verifyToken = async (req, res) => {
         }
 
         // Verify token
-        JWT.verify(token, process.env.JWT_SECRET_KEY);
+        const decoded = JWT.verify(token, process.env.JWT_SECRET_KEY);
+
+        // check exist data
+        const findOne = await AuthModel.findById(decoded.user_id);
+        if (!findOne) { return res.json({ message: "Item not found" }) }
 
         return res.json({
             isValid: true,
