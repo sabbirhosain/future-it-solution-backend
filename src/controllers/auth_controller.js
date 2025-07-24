@@ -699,7 +699,6 @@ export const generateNewToken = async (req, res) => {
         // Generate new access token
         const accessToken = createJSONWebToken({ ...findUser.toObject() }, process.env.JWT_SECRET_KEY, "1d");
         const newRefreshToken = createJSONWebToken({ ...findUser.toObject() }, process.env.JWT_SECRET_KEY, '7d');
-        console.log('Generate New Access Token.');
 
         return res.json({
             success: true,
