@@ -495,7 +495,8 @@ export const verifyToken = async (req, res) => {
         const { accessToken } = req.body;
         if (!accessToken || typeof accessToken !== 'string') {
             return res.status(400).json({
-                success: false, message: 'Token is required.',
+                success: false,
+                message: 'Token is required.',
                 accessToken: 'field is required.'
             });
         }
