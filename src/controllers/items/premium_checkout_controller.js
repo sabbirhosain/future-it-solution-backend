@@ -84,7 +84,7 @@ export const show = async (req, res) => {
         // Create base filter
         const dataFilter = {
             $or: [
-                { 'items.item_name': { $regex: searchQuery } },
+                { 'item_name': { $regex: searchQuery } },
                 { 'billing_address.full_name': { $regex: searchQuery } },
                 { 'billing_address.email': { $regex: searchQuery } },
                 { 'billing_address.phone': { $regex: searchQuery } }

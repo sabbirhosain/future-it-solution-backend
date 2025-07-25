@@ -6,7 +6,7 @@ import * as FreeItems from "../controllers/items/free_items_controller.js";
 import * as Appointment from "../controllers/appointment_controller.js";
 import * as ContactForm from "../controllers/contact_form_controller.js";
 import * as OurTeams from "../controllers/our_teams_controller.js";
-import * as CheckOut from "../controllers/items/checkout_controller.js";
+import * as PremiumCheckOut from "../controllers/items/premium_checkout_controller.js";
 import * as FreeCheckOut from "../controllers/items/free_checkout_controller.js";
 import * as Review from "../controllers/items/reviews_controller.js";
 import { isAuthenticated, isLoggedOut } from "../middleware/auth_middleware.js";
@@ -59,16 +59,18 @@ router.delete("/items/:item_id/reviews/:review_id", Review.destroy);
 router.post("/items/:item_id/reviews/:review_id/reply", Review.replyToReview);
 
 // Private routes || free checkout
-router.post("/items/free/product/checkout", FreeCheckOut.create)
-router.get("/items/free/product/checkout", FreeCheckOut.show)
-router.put("/items/free/product/checkout/:id", FreeCheckOut.update)
-router.delete("/items/free/product/checkout", FreeCheckOut.destroy)
+router.post("/items/free/checkout", FreeCheckOut.create)
+router.get("/items/free/checkout", FreeCheckOut.show)
+router.get("/items/free/checkout/:id", FreeCheckOut.single)
+router.put("/items/free/checkout/:id", FreeCheckOut.update)
+router.delete("/items/free/checkout/:id", FreeCheckOut.destroy)
 
-// Private routes || checkout
-router.post("/items/product/checkout", CheckOut.create)
-router.get("/items/product/checkout", CheckOut.show)
-router.put("/items/product/checkout/:id", CheckOut.update)
-router.delete("/items/product/checkout", CheckOut.destroy)
+// Private routes || premium checkout
+router.post("/items/premium/checkout", PremiumCheckOut.create)
+router.get("/items/premium/checkout", PremiumCheckOut.show)
+router.get("/items/premium/checkout/:id", PremiumCheckOut.single)
+router.put("/items/premium/checkout/:id", PremiumCheckOut.update)
+router.delete("/items/premium/checkout/:id", PremiumCheckOut.destroy)
 
 // Private routes || appointment meeting
 router.post("/appointment/schedule", isAuthenticated, Appointment.create)
